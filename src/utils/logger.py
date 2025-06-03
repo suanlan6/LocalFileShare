@@ -1,0 +1,24 @@
+import logging
+import sys
+
+class CustomFormatter(logging.Formatter):
+    def format(self, record):
+        # 时间、日志级别、文件名、行号、消息
+        log_fmt = "[%(asctime)s] [%(levelname)s] [%(filename)s:%(lineno)d] %(message)s"
+        formatter = logging.Formatter(log_fmt, datefmt="%Y-%m-%d %H:%M:%S")
+        return formatter.format(record)
+
+def get_logger(name=__name__):
+    logger = logging.getLogger(name)
+    logger.setLevel(logging.INFO)
+    if not logger.handlers:
+        handler = logging.StreamHandler(sys.stdout)
+        handler.setFormatter(CustomFormatter())
+        logger.addHandler(handler)
+    return logger
+
+if __name__ == "__main__":
+    log = get_logger()
+    log.info("This is an info message.")
+    log.warning("This is a warning message.")
+    log.error("This is an error message.")
