@@ -17,8 +17,9 @@ def get_logger(name=__name__):
         logger.addHandler(handler)
     return logger
 
+_logger = get_logger()
+
 if __name__ == "__main__":
-    log = get_logger()
-    log.info("This is an info message.")
-    log.warning("This is a warning message.")
-    log.error("This is an error message.")
+    _logger.info("This is an info message.")
+    _logger.warning("This is a warning message.")
+    _logger.error("This is an error message.")

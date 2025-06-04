@@ -1,15 +1,23 @@
 # 设备连接控制、共享目录管理、权限控制
+import aiohttp
 import asyncio
 
 from typing import Callable, Dict, Any, Awaitable, List
+from aiohttp import web, ClientSession
 
 from common.fileConf import ShareType, FileInfo
+from common.device import Device
+from file_manager import async_send_files
+from utils.logger import _logger
 
 class ShareManager:
-    def __init__(self):
+    def __init__(self, device: Device):
         """初始化共享管理器"""
+        self.bindDevice = device
         self._devices = {}
+        # connections 保存设备连接,key 为 连接设备 deviceId, value 为与该设备通信凭证
         self.connections = {}
+        # transfers 保存文件传输任务,key 为 设备 deviceId, value 为传输任务列表
         self.transfers = {}
 
     def startScan(self) -> None:
@@ -59,7 +67,7 @@ class ShareManager:
         """
         pass
 
-    def sendFile(self, deviceId: str, type: ShareType, files: List[FileInfo]) -> None:
+    async def sendFile(self, deviceId: str, type: ShareType, files: List[FileInfo]) -> Any:
         """
         传输文件。
         Args:
@@ -67,9 +75,14 @@ class ShareManager:
             type (ShareType): 分享类型。
             files (List[FileInfo]): 文件信息数组。
         """
-        pass
+        return await async_send_files(
+            dst_path=f"{self.connections[deviceId]['host']}:{self.connections[deviceId]['port']}",
+            share_type=type,
+            files=files,
+            progress_callback=None  # 可以传入进度回调函数
+        )
 
-    def featchFile(self, deviceId: str, type: ShareType, files: List[FileInfo]) -> None:
+    async def fetchFile(self, deviceId: str, type: ShareType, files: List[FileInfo]) -> Any:
         """
         获取文件。
         Args:
@@ -77,7 +90,12 @@ class ShareManager:
             type (ShareType): 分享类型。
             files (List[FileInfo]): 文件信息数组。
         """
-        pass
+        return await async_send_files(
+            dst_path=f"{self.bindDevice.host_ip}:{self.bindDevice.bind_port}",
+            share_type=type,
+            files=files,
+            progress_callback=None  # 可以传入进度回调函数
+        )
 
     def cancelSendFile(self, deviceId: str) -> None:
         """
