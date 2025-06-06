@@ -139,3 +139,5 @@ cython_debug/
 
 # VS Code settings
 .vscode/
+.conda/
+test/

@@ -1,2 +1,5 @@
 aiohttp
 python-dotenv
+pillow
+opencv-python
+numpy>=1.21.2
