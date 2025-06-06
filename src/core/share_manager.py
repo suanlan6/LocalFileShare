@@ -10,10 +10,13 @@ from aiohttp import web, ClientSession
 from src.common.fileConf import ShareType, FileInfo
 from src.common.device import Device
 from src.common.global_config import CHUNK_SIZE
-from .transfer import (
+from .transfer.transfer_config import TransferStatus
+from .transfer.transfer_utils import my_progress_callback
+from .transfer.transfer_client import (
     async_send_files,
     async_download_files,
-    my_progress_callback,
+)
+from .transfer.transfer_server import (
     upload_chunk,
     get_uploaded_chunks,
     merge_chunks,
@@ -32,6 +35,8 @@ class ShareManager:
         self.connections = {}
         # transfers 保存文件传输任务,key 为 设备 deviceId, value 为传输任务列表
         self.transfers = {}
+        # key 为 deviceId，value 为 {file_id: {"status": ..., "event": ...}}
+        self.downloads = {}
 
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
@@ -77,6 +82,42 @@ class ShareManager:
         await self.connect_runner.cleanup()
         await self.transfer_runner.cleanup()
 
+    async def pause_upload(self, device_id: str, file_id: str):
+        """如果任务是执行状态，中断上传任务"""
+        if (
+            device_id in self.transfers
+            and file_id in self.transfers[device_id]
+            and self.transfers[device_id][file_id]["status"] == TransferStatus.RUNNING
+        ):
+            self.transfers[device_id][file_id]["status"] = TransferStatus.PAUSED
+
+    async def resume_upload(self, device_id: str, file_id: str):
+        """如果任务是暂停状态，则恢复上传任务"""
+        if (
+            device_id in self.transfers
+            and file_id in self.transfers[device_id]
+            and self.transfers[device_id][file_id]["status"] == TransferStatus.PAUSED
+        ):
+            self.transfers[device_id][file_id]["status"] = TransferStatus.RUNNING
+            self.transfers[device_id][file_id]["event"].set()
+
+    async def pause_download(self, device_id: str, file_id: str):
+        if (
+            device_id in self.downloads
+            and file_id in self.downloads[device_id]
+            and self.downloads[device_id][file_id]["status"] == TransferStatus.RUNNING
+        ):
+            self.downloads[device_id][file_id]["status"] = TransferStatus.PAUSED
+
+    async def resume_download(self, device_id: str, file_id: str):
+        if (
+            device_id in self.downloads
+            and file_id in self.downloads[device_id]
+            and self.downloads[device_id][file_id]["status"] == TransferStatus.PAUSED
+        ):
+            self.downloads[device_id][file_id]["status"] = TransferStatus.RUNNING
+            self.downloads[device_id][file_id]["event"].set()
+
     async def handle_upload_chunk(self, request: web.Request):
         headers = request.headers
         file_id = headers.get("X-File-Id")
@@ -114,9 +155,7 @@ class ShareManager:
         total_chunks = data.get("total_chunks")
         unzip_after_merge = data.get("unzip_after_merge", False)
 
-        result = await merge_chunks(
-            file_id, filename, path, total_chunks, unzip_after_merge
-        )
+        result = merge_chunks(file_id, filename, path, total_chunks, unzip_after_merge)
         if result["status"] == "error":
             _logger.error(
                 f"Failed to merge chunks for {filename}, error: {result['message']}"
@@ -132,7 +171,7 @@ class ShareManager:
             return web.Response(status=400, text="Invalid folder path")
 
         try:
-            result = await prepare_folder_download(folder_path)
+            result = prepare_folder_download(folder_path)
             return web.json_response(result)
         except Exception as e:
             return web.Response(status=400, text=str(e))
@@ -224,6 +263,7 @@ class ShareManager:
                     if resp.status == 200:
                         data = await resp.json()
                         token = data.get("token", None)
+
                         # 存储连接信息
                         self.connections[deviceId] = {
                             "host": host,
@@ -231,6 +271,11 @@ class ShareManager:
                             "token": token,
                             "status": "connected",
                         }
+
+                        # 初始化传输和下载任务列表
+                        self.transfers[deviceId] = {}
+                        self.downloads[deviceId] = {}
+
                         if callback:
                             await callback(
                                 {
@@ -299,6 +344,7 @@ class ShareManager:
             dst_path=dst_path,
             share_type=type,
             files=files,
+            transfer_control=self.transfers[deviceId],
             progress_callback=my_progress_callback,  # 可以传入进度回调函数
         )
 
@@ -316,6 +362,7 @@ class ShareManager:
             dst_path=dst_path,
             share_type=type,
             files=files,
+            download_control=self.downloads[deviceId],
             progress_callback=my_progress_callback,  # 可以传入进度回调函数
         )
 
