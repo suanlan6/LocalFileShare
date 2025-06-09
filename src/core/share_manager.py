@@ -39,7 +39,7 @@ class ShareManager:
         # key 为 deviceId，value 为 {file_id: {"status": ..., "event": ...}}
         self.downloads = {}
         # 文件相关操作
-        self.file_share = FileSharing()
+        self.file_share = FileSharing(device.host_ip)
 
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):

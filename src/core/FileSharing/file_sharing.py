@@ -19,12 +19,13 @@ from src.utils.logger import _logger
 
 
 class FileSharing:
-    def __init__(self, config_path: str = "shares.json"):
+    def __init__(self, host: str, config_path: str = "shares.json"):
         """
         初始化文件共享系统
         :param device_name: 本机设备名称
         :param config_path: 共享配置存储路径
         """
+        self.host = host  # 主机名或IP地址
         self.os_type = platform.system()
         self.current_user = getpass.getuser()
         self.os_type = platform.system()
@@ -88,7 +89,7 @@ class FileSharing:
                     name="..",
                     path=parent,
                     size=0,  # 上级目录没有大小
-                    host=f"{self.current_user}@{socket.gethostname()}",
+                    host=f"{self.host}",
                     file_type=ShareType.FOLDER,
                 )
             )
@@ -99,7 +100,7 @@ class FileSharing:
                     name="..",
                     path=parent,
                     size=0,  # 上级目录没有大小
-                    host=f"{self.current_user}@{socket.gethostname()}",
+                    host=f"{self.host}",
                     file_type=ShareType.FOLDER,
                 )
             )
@@ -131,7 +132,7 @@ class FileSharing:
                         name=entry.name,
                         path=entry.path,
                         size=size,
-                        host=f"{self.current_user}@{socket.gethostname()}",
+                        host=f"{self.host}",
                         file_type=file_type,
                     )
                 )
@@ -163,7 +164,7 @@ class FileSharing:
             name=name,
             size=0,  # 共享目录不需要大小
             path=abs_path,
-            host=f"{self.current_user}@{socket.gethostname()}",
+            host=f"{self.host}",
             file_type=ShareType.FOLDER,
         )
         self.save_config()
