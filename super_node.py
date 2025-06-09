@@ -20,6 +20,8 @@ class SuperNode:
         # device_id 正在等待确认
         self.pending_invites = set()
         self.pending_invite_times = {}  # device_id → timestamp
+        # 对 peer_super_nodes 的读写加锁
+        self.peer_lock = threading.Lock()
 
     def start(self):
         #用于接收 JOIN_CONFIRM
@@ -35,6 +37,9 @@ class SuperNode:
         self._start_heartbeat_listener()
         #清理过期邀请名额
         self.start_invite_timeout_checker()
+        #定期清理离线的超级节点
+        self.start_peer_super_node_timeout_checker()
+
 
         from lan_comm import broadcast_super_node_hello  # 确保这一行在顶部或局部导入
 
@@ -103,14 +108,15 @@ class SuperNode:
                         for dev in self.sub_nodes.values():
                             all_devices[dev["device_id"]] = dev["device_name"]
 
-                        for peer_data in self.peer_super_nodes.values():
-                            peer = peer_data["super_node"]
-                            all_devices[peer["device_id"]] = peer["device_name"]
-                            for name_pair in peer_data.get("sub_info", []):
-                                all_devices[name_pair["device_id"]] = name_pair["device_name"]
-                        print("self.sub_nodes.values():",self.sub_nodes.values())
-                        print("self.peer_super_nodes.values():",self.peer_super_nodes.values())
-                        print("all_devices",all_devices)
+                        with self.peer_lock:
+                            for peer_data in self.peer_super_nodes.values():
+                                peer = peer_data["super_node"]
+                                all_devices[peer["device_id"]] = peer["device_name"]
+                                for name_pair in peer_data.get("sub_info", []):
+                                    all_devices[name_pair["device_id"]] = name_pair["device_name"]
+                        #print("self.sub_nodes.values():",self.sub_nodes.values())
+                        #print("self.peer_super_nodes.values():",self.peer_super_nodes.values())
+                        #print("all_devices",all_devices)
                         response = {
                             "type": "GLOBAL_VIEW_SYNC",
                             "timestamp": time.time(),
@@ -131,7 +137,7 @@ class SuperNode:
         if msg_type == "HELLO":
             self.handle_new_device(msg.get("device"), addr)
         elif msg_type == "SUPERNODE_HELLO":
-            print("msg", msg)
+            #print("msg", msg)
             info = msg.get("super_node")
             peer_id = info.get("device_id")
 
@@ -142,15 +148,15 @@ class SuperNode:
             group_limit = msg.get("group_limit", 0)
             sub_info = msg.get("sub_info", [])  # ✅ 使用结构化子节点信息
             now = time.time()
-
-            is_new = peer_id not in self.peer_super_nodes
-            self.peer_super_nodes[peer_id] = {
-                "super_node": info,
-                "sub_count": sub_count,
-                "group_limit": group_limit,
-                "sub_info": sub_info,  # ✅ 替代 sub_names
-                "last_seen": now
-            }
+            with self.peer_lock:
+                is_new = peer_id not in self.peer_super_nodes
+                self.peer_super_nodes[peer_id] = {
+                    "super_node": info,
+                    "sub_count": sub_count,
+                    "group_limit": group_limit,
+                    "sub_info": sub_info,  # ✅ 替代 sub_names
+                    "last_seen": now
+                }
 
             if is_new:
                 print(f"🛰️ 发现新超级节点：{peer_id}")
@@ -258,71 +264,28 @@ class SuperNode:
                 print(f"   子节点列表：[{self_names}]")
 
                 # 打印其他超级节点
-                if not self.peer_super_nodes:
-                    print("（暂无其他超级节点）")
-                else:
-                    now = time.time()
-                    for peer_id, data in self.peer_super_nodes.items():
-                        dev = data["super_node"]
-                        sub_count = data["sub_count"]
-                        limit = data["group_limit"]
-                        last_seen = now - data["last_seen"]
-                        print(f" - [{dev['device_name']}] ({peer_id[:6]}) {dev['host_ip']}:{dev['conn_port']} | "
-                              f"子节点：{sub_count}/{limit - 1} | 上次看到：{last_seen:.1f}s 前")
-                        names = ", ".join(data.get("sub_names", []))
-                        print(f"   子节点列表：[{names}]")
+                with self.peer_lock:
+                    #print("peer_super_nodes:", self.peer_super_nodes)
+                    if not self.peer_super_nodes:
+                        print("（暂无其他超级节点）")
+                    else:
+                        now = time.time()
+                        for peer_id, data in self.peer_super_nodes.items():
+                            dev = data["super_node"]
+                            sub_count = data["sub_count"]
+                            limit = data["group_limit"]
+                            last_seen = now - data["last_seen"]
+                            print(f" - [{dev['device_name']}] ({peer_id[:6]}) {dev['host_ip']}:{dev['conn_port']} | "
+                                  f"子节点：{sub_count}/{limit - 1} | 上次看到：{last_seen:.1f}s 前")
+                            sub_info = data.get("sub_info", [])
+                            names = ", ".join(dev["device_name"] for dev in sub_info)
+                            print(f"   子节点列表：[{names}]")
 
                 print("-" * 50)
                 time.sleep(interval)
 
         threading.Thread(target=_print, daemon=True).start()
-    """
-    def start_periodic_group_sync(self, interval=10):
-        def _sync():
-            while True:
-                all_device_names = set()
 
-                # 自己和自己管理的子节点
-                all_device_names.add(self.device.device_name)
-                for dev in self.sub_nodes.values():
-                    all_device_names.add(dev["device_name"])
-
-                # 来自其他超级节点的同步视图
-                for peer_data in self.peer_super_nodes.values():
-                    peer = peer_data["super_node"]
-                    all_device_names.add(peer["device_name"])
-                    for name in peer_data.get("sub_names", []):
-                        all_device_names.add(name)
-
-                # 构建 payload 发给子节点
-                payload = {
-                    "type": "GLOBAL_VIEW_SYNC",
-                    "timestamp": time.time(),
-                    "online_device_names": list(all_device_names)
-                }
-
-                # 避免遍历过程中被修改
-                safe_sub_nodes = list(self.sub_nodes.items())
-                to_remove = []
-
-                for dev_id, dev in safe_sub_nodes:
-                    try:
-                        send_sync_to_child(dev["host_ip"], dev["conn_port"], payload)
-                    except Exception as e:
-                        print(f"[同步失败] → {dev['host_ip']}:{dev['conn_port']} ：{e}")
-                        to_remove.append(dev_id)
-
-                # 清理掉线子节点
-                for dev_id in to_remove:
-                    self.sub_nodes.pop(dev_id, None)
-                    self.heartbeat_map.pop(dev_id, None)
-                    print(f"🚫 子节点掉线（同步失败自动剔除）：{dev_id}")
-
-                print(f"🌐 已同步全局视图，共 {len(all_device_names)} 台设备")
-                time.sleep(interval)
-
-        threading.Thread(target=_sync, daemon=True).start()
-    """
     def start_invite_timeout_checker(self, interval=5, timeout=10):
         def _check():
             while True:
@@ -337,6 +300,26 @@ class SuperNode:
                         self.pending_invites.discard(dev_id)
                         self.pending_invite_times.pop(dev_id, None)
                         print(f"⏳ 清除过期邀请：{dev_id}")
+
+                time.sleep(interval)
+
+        threading.Thread(target=_check, daemon=True).start()
+
+    def start_peer_super_node_timeout_checker(self, interval=10, timeout=20):
+        def _check():
+            while True:
+                now = time.time()
+                offline = []
+                with self.peer_lock:
+                    for peer_id, info in list(self.peer_super_nodes.items()):
+                        last_seen = info.get("last_seen", 0)
+                        if now - last_seen > timeout:
+                            offline.append(peer_id)
+                with self.peer_lock:
+                    for peer_id in offline:
+                        peer_info = self.peer_super_nodes.pop(peer_id)
+                        dev = peer_info["super_node"]
+                        print(f"🛑 超级节点掉线：{dev['device_name']} ({peer_id})")
 
                 time.sleep(interval)
 

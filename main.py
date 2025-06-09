@@ -34,15 +34,16 @@ def main():
 
     # Step 2: 等待加入超级节点
     wait_time = 5
-    print(f"⏳ 等待 {wait_time}s 尝试加入超级节点...")
-    time.sleep(wait_time)
+    print(f"⏳ 等待加入超级节点（最多 {wait_time}s）...")
+    child_node.join_event.wait(timeout=wait_time)
+    stop_hello_broadcast()
+    #等待之前的hello流程走完
+    time.sleep(3)
 
     print("main joined:", child_node.joined)
     if not child_node.joined:
+        child_node.reset_child_node_state()  # ✅ 清理子节点所有线程与状态
         print("⚠️ 未能加入任何超级节点 → 自动晋升为超级节点")
-
-        child_node.stop_listen_super_node()
-        stop_hello_broadcast()
         time.sleep(0.5)  # 等待 socket 彻底释放
 
         # ⚠️ 使用新的空闲端口，避免和子节点冲突

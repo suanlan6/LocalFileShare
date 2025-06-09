@@ -13,6 +13,10 @@ super_ip = None
 super_port = None
 listener_socket = None
 should_stop_listen = False
+join_event = threading.Event()
+should_abort_join = False
+heartbeat_stop_event = threading.Event()
+
 
 
 
@@ -22,8 +26,10 @@ def start_heartbeat(device, super_ip, super_port, interval=5):
         if heartbeat_started:
             return
         heartbeat_started = True
+        heartbeat_stop_event.clear()
+
     def _send():
-        while True:
+        while not heartbeat_stop_event.is_set():
             if joined:
                 msg = {
                     "type": "HEARTBEAT",
@@ -38,6 +44,13 @@ def start_heartbeat(device, super_ip, super_port, interval=5):
             time.sleep(interval)
 
     threading.Thread(target=_send, daemon=True).start()
+
+def stop_heartbeat():
+    global heartbeat_started
+    heartbeat_stop_event.set()
+    heartbeat_started = False
+    print("🛑 心跳线程已停止")
+
 
 def stop_listen_super_node():
     global listener_socket, should_stop_listen
@@ -81,7 +94,7 @@ def listen_super_node(self_device: Device, on_join_callback=None, auto_join_call
                         join_candidates.append(super_info)
 
                     if not joined:
-                        threading.Timer(1.5, choose_and_join, args=[self_device, on_join_callback]).start()
+                        threading.Thread(target=delayed_choose_and_join, args=[self_device, on_join_callback]).start()
 
                 elif msg_type == "NEW_MEMBER_SYNC":
                     new_dev = msg.get("new_member")
@@ -106,9 +119,11 @@ def listen_super_node(self_device: Device, on_join_callback=None, auto_join_call
 
 
 def choose_and_join(self_device: Device, on_join_callback):
+    global joined, super_ip, super_port, heartbeat_started, join_candidates  # ✅ 统一声明
+
     print("join_candidates", len(join_candidates))
     print(join_candidates)
-    global joined, super_ip, super_port
+
     if joined or not join_candidates:
         return
 
@@ -147,25 +162,65 @@ def choose_and_join(self_device: Device, on_join_callback):
             # ✅ 开启心跳
             start_heartbeat(self_device, chosen["host_ip"], heartbeat_port)
             joined = True
-            print("child_node joined:",joined)
+            print("child_node joined:", joined)
 
             if on_join_callback:
                 on_join_callback()
+            join_event.set()
             return
+
+
 
         except Exception as e:
             print(f"[JOIN_CONFIRM 失败]：{e}")
             continue
 
     print("❗️所有超级节点都拒绝或连接失败，提升为超级节点")
+    # ✅ 不论成功失败都应设置，表示尝试完成
+    join_event.set()
+    reset_child_node_state()
+
+    """
     from lan_comm import stop_hello_broadcast
-    stop_hello_broadcast()
-    from super_node import SuperNode
     stop_listen_super_node()
+    stop_hello_broadcast()
+    joined = False
+    heartbeat_started = False
+    join_candidates.clear()
+    time.sleep(0.5)  # 等待 socket 彻底释放
+    from super_node import SuperNode
+    from main import find_free_port
+    new_port = find_free_port()
+    self_device.conn_port = new_port
     super_node = SuperNode(self_device)
+    print(super_node)
     super_node.start()
+    """
+
+def reset_child_node_state():
+    global joined, heartbeat_started, join_candidates, should_abort_join
+    from lan_comm import stop_hello_broadcast
+    joined = False
+    heartbeat_started = False
+    should_abort_join = True
+    join_candidates.clear()
+    join_event.clear()
+    stop_hello_broadcast()
+    stop_listen_super_node()
+    stop_heartbeat()  # ✅ 新增
+    print("🧹 已重置子节点状态，准备晋升为超级节点")
 
 
+
+
+def delayed_choose_and_join(self_device, on_join_callback):
+    time.sleep(1.5)  # 模拟原来的 Timer 延时
+
+    if should_abort_join:
+        print("⛔ 中断：节点已切换身份，跳过 choose_and_join")
+        return
+
+    choose_and_join(self_device, on_join_callback)
 
 
 def request_global_view(self_device,super_ip, super_port):
