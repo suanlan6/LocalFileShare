@@ -4,7 +4,7 @@ import asyncio
 import os
 import json
 
-from typing import Callable, Dict, Any, Awaitable, List
+from typing import Callable, Dict, Optional, Any, Awaitable, List
 from aiohttp import web, ClientSession
 
 from src.common.fileConf import ShareType, FileInfo
@@ -23,6 +23,7 @@ from .transfer.transfer_server import (
     prepare_folder_download,
     download_chunk,
 )
+from .FileSharing.file_sharing import FileSharing
 from src.utils.logger import _logger
 
 
@@ -37,6 +38,8 @@ class ShareManager:
         self.transfers = {}
         # key 为 deviceId，value 为 {file_id: {"status": ..., "event": ...}}
         self.downloads = {}
+        # 文件相关操作
+        self.file_share = FileSharing()
 
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
@@ -64,6 +67,10 @@ class ShareManager:
                 web.get(
                     "/prepare_folder_download", self.handle_prepare_folder_download
                 ),  # 新增准备下载文件夹接口
+                web.post(
+                    "/get_remote_shared_files",
+                    self.handle_get_shared_file_of_remote_device,
+                ),  # 新增获取远程设备共享文件接口
             ]
         )
         self.transfer_runner = web.AppRunner(transfer_app)
@@ -192,7 +199,7 @@ class ShareManager:
             return web.Response(status=400, text=str(e))
 
     # 处理连接请求，返回transfer端口
-    async def handle_connect(self, request):
+    async def handle_connect(self, request: web.Request):
         data = await request.json()
         from_device = data.get("fromDeviceId")
         _logger.info(f"Received connect request from {from_device}")
@@ -275,6 +282,8 @@ class ShareManager:
                         # 初始化传输和下载任务列表
                         self.transfers[deviceId] = {}
                         self.downloads[deviceId] = {}
+
+                        # TODO: Save all connection config here
 
                         if callback:
                             await callback(
@@ -399,3 +408,90 @@ class ShareManager:
             files (List[FileInfo]): 文件信息数组。
         """
         pass
+
+    async def handle_get_shared_file_of_remote_device(self, request: web.Request):
+        """
+        获取远程设备共享的文件列表。
+        Args:
+            deviceId (str): 设备ID。
+        Returns:
+            List[FileInfo]: 远程设备共享的文件信息列表。
+        """
+        try:
+            data = await request.json()
+            bind_param = data.get("bindParam", {})
+            directory = bind_param.get("directory")
+            if not directory:
+                return web.json_response(
+                    {"error": "Missing directory in bindParam"}, status=400
+                )
+
+            shared_dir = self.file_share._handle_file_request(directory)
+
+            return web.json_response(
+                data=shared_dir,
+                dumps=lambda obj: json.dumps(obj, default=lambda x: x.__dict__),
+            )
+        except Exception as e:
+            # 明确返回 application/json 的错误响应，避免客户端报 mimetype 错误
+            return web.json_response({"error": f"Server error: {str(e)}"}, status=500)
+
+    async def get_remote_shared_file(
+        self,
+        deviceId: str,
+        bindParam: dict,
+    ) -> List[FileInfo]:
+        """
+        获取远程设备共享的文件列表。
+        Args:
+            deviceId (str): 设备ID。
+        Returns:
+            List[FileInfo]: 远程设备共享的文件信息列表。
+        """
+        # 这里可以实现获取远程设备共享文件的逻辑
+        host, port = (
+            self.connections[deviceId]["host"],
+            self.connections[deviceId]["port"],
+        )
+        connect_url = f"http://{host}:{port}/get_remote_shared_files"
+
+        payload = {"fromDeviceId": self.bindDevice.device_id, "bindParam": bindParam}
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(connect_url, json=payload, timeout=5) as resp:
+                    if resp.status == 200:
+                        return [FileInfo.from_dict(file) for file in await resp.json()]
+                    else:
+                        _logger.error(
+                            f"Failed to get remote shared files: {str(await resp.json())}"
+                        )
+                        return []
+        except Exception as e:
+            _logger.error(f"Failed to get remote shared files: {str(e)}")
+            return []
+
+    def get_local_directory(self, directory: Optional[str] = None) -> List[FileInfo]:
+        """
+        获取本地共享目录的文件列表。
+        Returns:
+            List[FileInfo]: 本地共享目录的文件信息列表。
+        """
+        # 这里可以实现获取本地共享目录文件的逻辑
+        return self.file_share.list_local_dir(path=directory)
+
+    def set_shared_directory(self, directory: str) -> None:
+        """
+        设置本地共享目录。
+        Args:
+            directory (str): 共享目录路径。
+        """
+        # 这里可以实现设置本地共享目录的逻辑
+        self.file_share.add_shared_dir(path=directory)
+
+    def cancel_shared_directory(self, directory: str) -> None:
+        """
+        取消本地共享目录。
+        """
+        # 这里可以实现取消本地共享目录的逻辑
+        self.file_share.remove_shared_dir(path=directory)
