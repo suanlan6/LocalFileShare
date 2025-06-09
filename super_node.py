@@ -66,12 +66,25 @@ class SuperNode:
             while True:
                 try:
                     data, addr = sock.recvfrom(65536)
+                    print("data",data)
+                    print("addr",addr)
                     msg = json.loads(data.decode('utf-8'))
 
                     if msg.get("type") == "HEARTBEAT":
                         dev_id = msg.get("device_id")
                         self.heartbeat_map[dev_id] = time.time()
                         print(f"💓 收到心跳：{dev_id}")
+
+                        # 回发 ACK
+                        ack = {
+                            "type": "HEARTBEAT_ACK"
+                        }
+                        try:
+                            sock.sendto(json.dumps(ack).encode("utf-8"), addr)
+                            print(f"🔁 已发送 HEARTBEAT_ACK → {addr}")
+                        except Exception as e:
+                            print(f"❌ 发送 ACK 失败: {e}")
+
                 except Exception as e:
                     print(f"[UDP心跳监听异常] {e}")
 

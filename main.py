@@ -9,6 +9,9 @@ from lan_comm import (
 from super_node import SuperNode
 import uuid
 
+
+
+
 def generate_unique_name(prefix="Node"):
     return f"{prefix}-{uuid.uuid4().hex[:6]}"  # 例如 Node-a1b2c3
 
@@ -42,23 +45,23 @@ def main():
 
     print("main joined:", child_node.joined)
     if not child_node.joined:
-        child_node.reset_child_node_state()  # ✅ 清理子节点所有线程与状态
-        print("⚠️ 未能加入任何超级节点 → 自动晋升为超级节点")
-        time.sleep(0.5)  # 等待 socket 彻底释放
+        if child_node.first_start:
+            child_node.reset_child_node_state()  # ✅ 清理子节点所有线程与状态
+            print("⚠️ main函数外部：未能加入任何超级节点 → 自动晋升为超级节点")
+            time.sleep(0.5)  # 等待 socket 彻底释放
 
-        # ⚠️ 使用新的空闲端口，避免和子节点冲突
-        new_port = find_free_port()
-        device.conn_port = new_port
+            # ⚠️ 使用新的空闲端口，避免和子节点冲突
+            new_port = find_free_port()
+            device.conn_port = new_port
 
-        print(f"🔁 分配新端口用于超级节点：{new_port}")
-        super_node = SuperNode(device)
-        super_node.start()
+            print(f"🔁 分配新端口用于超级节点：{new_port}")
+            super_node = SuperNode(device)
+            super_node.start()
 
     else:
         # Step 4: 成功加入 → 开启子节点输入命令监听
         print("✅ 成功加入某个超级节点，继续作为子节点运行")
         child_node.start_input_command_listener(device)
-
     # Step 5: 阻止主线程退出
     try:
         while True:
