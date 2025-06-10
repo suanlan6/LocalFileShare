@@ -7,6 +7,8 @@ import tempfile
 from typing import Dict, Optional
 
 from src.common.global_config import CHUNK_SIZE
+from src.utils.logger import _logger
+from .transfer_config import TransferStatus
 
 
 async def upload_chunk(
@@ -39,10 +41,14 @@ async def upload_chunk(
     return {"status": "success", "message": "Chunk uploaded successfully"}
 
 
-def get_uploaded_chunks(
+async def get_uploaded_chunks(
+    from_device_id: str,
     file_id: str,
     filename: str,
     path: str,
+    total_chunks: int,
+    upload_by_other: Dict[str, Dict[str, Dict[str, str]]],
+    upload_lock: asyncio.Lock,
     thumbnail_b64: Optional[str] = None,
     media_type: Optional[str] = None,
 ) -> Dict[str, str]:
@@ -67,15 +73,43 @@ def get_uploaded_chunks(
 
     save_dir = os.path.join(path, f".{file_id}.chunks")
     if not os.path.exists(save_dir):
+        if file_id not in upload_by_other[from_device_id]:
+            upload_by_other[from_device_id][file_id] = {
+                "filename": filename,
+                "status": TransferStatus.RUNNING,
+                "uploaded_chunks": [],
+                "total_chunks": total_chunks,
+                "path": path,
+                "media_type": media_type,
+                "thumbnail_b64": thumbnail_b64,
+            }
         return {"status": "no chunks", "message": "No chunks found"}
 
-    chunks = []
-    for fname in os.listdir(save_dir):
-        if fname.startswith("chunk_"):
-            idx = int(fname.replace("chunk_", ""))
-            chunks.append(idx)
+    uploaded_chunks = [
+        int(fname.replace("chunk_", ""))
+        for fname in os.listdir(save_dir)
+        if fname.startswith("chunk_")
+    ]
 
-    return {"status": "success", "chunks": sorted(chunks)}
+    # 3. 并发安全地记录任务
+    async with upload_lock:
+        if file_id not in upload_by_other[from_device_id]:
+            upload_by_other[from_device_id][file_id] = {
+                "filename": filename,
+                "status": TransferStatus.RUNNING,
+                "uploaded_chunks": uploaded_chunks,
+                "total_chunks": total_chunks,
+                "path": path,
+                "media_type": media_type,
+                "thumbnail_b64": thumbnail_b64,
+            }
+        else:
+            # 更新进度
+            upload_by_other[from_device_id][file_id][
+                "uploaded_chunks"
+            ] = uploaded_chunks
+
+    return {"status": "success", "chunks": sorted(uploaded_chunks)}
 
 
 def merge_chunks(
@@ -128,6 +162,14 @@ def merge_chunks(
         "message": f"File {filename} merged successfully",
         "output_path": output_file,
     }
+
+
+def remove_cancel_directories(file_path: list[str]):
+    for path in file_path:
+        if not os.path.exists(path):
+            _logger.warning(f"Path {path} does not exist, skipping removal.")
+            continue
+        shutil.rmtree(path)
 
 
 async def download_chunk(file_path: str, chunk_index: int, chunk_size: int) -> bytes:

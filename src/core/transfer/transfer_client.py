@@ -7,7 +7,7 @@ import tempfile
 
 from typing import List, Dict, Tuple, Callable, Optional, Any
 
-from .transfer_config import TransferStatus, get_file_id
+from .transfer_config import TransferStatus, STATUS_MESSAGE, get_file_id
 from .transfer_utils import (
     is_image_or_video,
     generate_thumbnail_base64,
@@ -65,12 +65,14 @@ def prepare_upload_targets(
 async def upload_single_file(
     file: FileInfo,
     remote_dir: str,
+    deviceId: str,
     host: str,
     port: str,
     upload_url: str,
     merge_url: str,
     need_unzip: bool,
     transfer_control: Dict[str, Dict[str, Any]],
+    transfer_lock: asyncio.Lock,
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ):
     """
@@ -84,6 +86,7 @@ async def upload_single_file(
         merge_url (str): 合并分片的 URL。
         need_unzip (bool): 是否需要在上传后解压缩文件。
         transfer_control (Dict[str, Dict[str, Any]]): 传输控制状态字典，用于跟踪文件传输状态。
+        transfer_lock (asyncio.Lock): 异步锁，用于控制并发上传。
         progress_callback (Optional[Callable[[str, float], None]]): 可选的进度回调函数，接收文件名和进度百分比。
     """
     total = file.size
@@ -97,7 +100,13 @@ async def upload_single_file(
 
     async with aiohttp.ClientSession() as session:
         # 先查询服务端已有的分片索引
-        params = {"file_id": file_id, "filename": file.name, "path": remote_dir}
+        params = {
+            "from_device_id": deviceId,
+            "file_id": file_id,
+            "filename": file.name,
+            "path": remote_dir,
+            "total_chunks": total_chunks,
+        }
         if thumbnail_b64:
             params["thumbnail_b64"] = thumbnail_b64
             params["media_type"] = "video" if is_video else "image"
@@ -110,21 +119,18 @@ async def upload_single_file(
                     f"Failed to fetch uploaded chunks, error message: {await resp.text()}"
                 )
             uploaded_chunks = set(await resp.json())
-
         with open(file.path, "rb") as f:
             for chunk_index in range(total_chunks):
                 # 检查暂停
-                if transfer_control:
-                    transfer = transfer_control.get(file_id)
-                    while transfer and transfer["status"] != TransferStatus.RUNNING:
-                        if transfer["status"] == TransferStatus.FAILED:
-                            _logger.info("文件传输失败")
-                            return
-                        if transfer["status"] == TransferStatus.COMPLETED:
-                            _logger.info("文件传输已完成")
-                            return
-                        await transfer["event"].wait()
-                        transfer["event"].clear()
+                async with transfer_lock:
+                    if transfer_control:
+                        transfer = transfer_control.get(file_id)
+                        while transfer and transfer["status"] != TransferStatus.RUNNING:
+                            if transfer["status"] >= 2:
+                                _logger.info(STATUS_MESSAGE[transfer["status"]])
+                                return
+                            await transfer["event"].wait()
+                            transfer["event"].clear()
 
                 if chunk_index in uploaded_chunks:
                     continue  # 已上传，跳过
@@ -169,7 +175,8 @@ async def upload_single_file(
 
     # 更新传输控制状态
     # _logger.info(transfer_control)
-    transfer_control[file_id]["status"] = TransferStatus.COMPLETED
+    async with transfer_lock:
+        transfer_control[file_id]["status"] = TransferStatus.COMPLETED
 
     # 清理压缩包临时文件
     if need_unzip:
@@ -180,8 +187,10 @@ async def upload_single_file(
 async def async_send_files(
     dst_path: str,
     share_type: ShareType,
+    deviceId: str,
     files: List[FileInfo],
     transfer_control: Dict[str, Dict[str, Any]],
+    transfer_lock: asyncio.Lock,
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ) -> Dict[str, str]:
     """
@@ -211,12 +220,14 @@ async def async_send_files(
             upload_single_file(
                 file,
                 remote_dir,
+                deviceId,
                 host,
                 port,
                 upload_url,
                 merge_url,
                 need_zip,
                 transfer_control,
+                transfer_lock,
                 progress_callback,
             )
             for file, need_zip in upload_targets

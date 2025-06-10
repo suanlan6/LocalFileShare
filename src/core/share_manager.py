@@ -5,6 +5,7 @@ import os
 import json
 
 from typing import Callable, Dict, Optional, Any, Awaitable, List
+from collections import defaultdict
 from aiohttp import web, ClientSession
 
 from src.common.fileConf import ShareType, FileInfo
@@ -22,6 +23,7 @@ from .transfer.transfer_server import (
     merge_chunks,
     prepare_folder_download,
     download_chunk,
+    remove_cancel_directories,
 )
 from .FileSharing.file_sharing import FileSharing
 from src.utils.logger import _logger
@@ -32,12 +34,20 @@ class ShareManager:
         """初始化共享管理器"""
         self.bindDevice = device
         self._devices = {}
-        # connections 保存设备连接,key 为 连接设备 deviceId, value 为与该设备通信凭证
+        # (客户端)connections 保存设备连接,key 为 连接设备 deviceId, value 为与该设备通信凭证
         self.connections = {}
-        # transfers 保存文件传输任务,key 为 设备 deviceId, value 为传输任务列表
+        # (客户端)transfers 保存文件传输任务,key 为 设备 deviceId, value 为传输任务列表
         self.transfers = {}
+        # (客户端) transfers_locks 用于控制传输任务的并发访问，key 为 deviceId
+        self.transfers_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         # key 为 deviceId，value 为 {file_id: {"status": ..., "event": ...}}
         self.downloads = {}
+        # (服务端) connections, 保存设备连接信息(host, ip, port, token等)
+        self.client_connections: Dict[str, Dict[str, Any]] = {}
+        # (服务端)用于记录其他设备上传的文件
+        self.upload_by_other: Dict[str, Dict[str, Dict]] = {}
+        # 全局上传记录的写锁
+        self.upload_lock = asyncio.Lock()
         # 文件相关操作
         self.file_share = FileSharing(device.host_ip)
 
@@ -71,6 +81,9 @@ class ShareManager:
                     "/get_remote_shared_files",
                     self.handle_get_shared_file_of_remote_device,
                 ),  # 新增获取远程设备共享文件接口
+                web.post(
+                    "/cancel_transfer", self.handle_cancel_transfer
+                ),  # 新增取消传输任务接口
             ]
         )
         self.transfer_runner = web.AppRunner(transfer_app)
@@ -89,41 +102,49 @@ class ShareManager:
         await self.connect_runner.cleanup()
         await self.transfer_runner.cleanup()
 
-    async def pause_upload(self, device_id: str, file_id: str):
+    async def pause_upload_client(self, device_id: str, file_id: str):
         """如果任务是执行状态，中断上传任务"""
-        if (
-            device_id in self.transfers
-            and file_id in self.transfers[device_id]
-            and self.transfers[device_id][file_id]["status"] == TransferStatus.RUNNING
-        ):
-            self.transfers[device_id][file_id]["status"] = TransferStatus.PAUSED
+        async with self.transfers_locks[device_id]:
+            if (
+                device_id in self.transfers
+                and file_id in self.transfers[device_id]
+                and self.transfers[device_id][file_id]["status"]
+                == TransferStatus.RUNNING
+            ):
+                self.transfers[device_id][file_id]["status"] = TransferStatus.PAUSED
 
-    async def resume_upload(self, device_id: str, file_id: str):
+    async def resume_upload_client(self, device_id: str, file_id: str):
         """如果任务是暂停状态，则恢复上传任务"""
-        if (
-            device_id in self.transfers
-            and file_id in self.transfers[device_id]
-            and self.transfers[device_id][file_id]["status"] == TransferStatus.PAUSED
-        ):
-            self.transfers[device_id][file_id]["status"] = TransferStatus.RUNNING
-            self.transfers[device_id][file_id]["event"].set()
+        async with self.transfers_locks[device_id]:
+            if (
+                device_id in self.transfers
+                and file_id in self.transfers[device_id]
+                and self.transfers[device_id][file_id]["status"]
+                == TransferStatus.PAUSED
+            ):
+                self.transfers[device_id][file_id]["status"] = TransferStatus.RUNNING
+                self.transfers[device_id][file_id]["event"].set()
 
     async def pause_download(self, device_id: str, file_id: str):
-        if (
-            device_id in self.downloads
-            and file_id in self.downloads[device_id]
-            and self.downloads[device_id][file_id]["status"] == TransferStatus.RUNNING
-        ):
-            self.downloads[device_id][file_id]["status"] = TransferStatus.PAUSED
+        async with self.transfers_locks[device_id]:
+            if (
+                device_id in self.downloads
+                and file_id in self.downloads[device_id]
+                and self.downloads[device_id][file_id]["status"]
+                == TransferStatus.RUNNING
+            ):
+                self.downloads[device_id][file_id]["status"] = TransferStatus.PAUSED
 
     async def resume_download(self, device_id: str, file_id: str):
-        if (
-            device_id in self.downloads
-            and file_id in self.downloads[device_id]
-            and self.downloads[device_id][file_id]["status"] == TransferStatus.PAUSED
-        ):
-            self.downloads[device_id][file_id]["status"] = TransferStatus.RUNNING
-            self.downloads[device_id][file_id]["event"].set()
+        async with self.transfers_locks[device_id]:
+            if (
+                device_id in self.downloads
+                and file_id in self.downloads[device_id]
+                and self.downloads[device_id][file_id]["status"]
+                == TransferStatus.PAUSED
+            ):
+                self.downloads[device_id][file_id]["status"] = TransferStatus.RUNNING
+                self.downloads[device_id][file_id]["event"].set()
 
     async def handle_upload_chunk(self, request: web.Request):
         headers = request.headers
@@ -142,13 +163,25 @@ class ShareManager:
         return web.Response(text=result["message"])
 
     async def handle_uploaded_chunks(self, request: web.Request):
+        from_device_id = request.query.get("from_device_id")
         file_id = request.query.get("file_id")
         filename = request.query.get("filename")
         path = request.query.get("path")
+        total_chunks = request.query.get("total_chunks")
         thumbnail_b64 = request.query.get("thumbnail_b64")  # 可选
         media_type = request.query.get("media_type")  # 可选
 
-        result = get_uploaded_chunks(file_id, filename, path, thumbnail_b64, media_type)
+        result = await get_uploaded_chunks(
+            from_device_id,
+            file_id,
+            filename,
+            path,
+            total_chunks,
+            self.upload_by_other,
+            self.upload_lock,
+            thumbnail_b64,
+            media_type,
+        )
         if result["status"] == "no chunks":
             return web.json_response([])
 
@@ -200,14 +233,29 @@ class ShareManager:
 
     # 处理连接请求，返回transfer端口
     async def handle_connect(self, request: web.Request):
-        data = await request.json()
-        from_device = data.get("fromDeviceId")
-        _logger.info(f"Received connect request from {from_device}")
-        # 这里可以加认证、校验逻辑
-        # 返回transfer端口信息给请求方
-        return web.json_response(
-            {"transfer_port": self.bindDevice.transfer_port, "token": "example_token"}
-        )
+        try:
+            data = await request.json()
+            bind_param = data.get("bindParam", {})
+            from_device_id = bind_param.get("fromDeviceId")
+            _logger.info(f"Received connect request from {from_device_id}")
+            # 初始化上传任务
+            self.upload_by_other[from_device_id] = {}
+            # 这里可以加认证、校验逻辑
+            self.client_connections[from_device_id] = {
+                "host": bind_param.get("host"),
+                "port": bind_param.get("port"),
+                "token": "example_token",  # 这里可以生成一个真实的token
+            }
+            # 返回transfer端口信息给请求方
+            return web.json_response(
+                {
+                    "transfer_port": self.bindDevice.transfer_port,
+                    "token": "example_token",
+                }
+            )
+        except Exception as e:
+            _logger.error(f"Error handling connect request: {str(e)}")
+            return web.json_response({"error": str(e)}, status=500)
 
     # 示例目录列表接口（必须建立连接后才能访问，可在此处校验token）
     async def handle_list(self, request):
@@ -281,6 +329,7 @@ class ShareManager:
 
                         # 初始化传输和下载任务列表
                         self.transfers[deviceId] = {}
+                        self.transfers_locks[deviceId] = asyncio.Lock()
                         self.downloads[deviceId] = {}
 
                         # TODO: Save all connection config here
@@ -352,8 +401,10 @@ class ShareManager:
         return await async_send_files(
             dst_path=dst_path,
             share_type=type,
+            deviceId=self.bindDevice.device_id,
             files=files,
             transfer_control=self.transfers[deviceId],
+            transfer_lock=self.transfers_locks[deviceId],
             progress_callback=my_progress_callback,  # 可以传入进度回调函数
         )
 
@@ -383,14 +434,81 @@ class ShareManager:
         """
         pass
 
-    def cancelSendFileForFiles(self, deviceId: str, files: List[FileInfo]) -> None:
+    async def cancelSendFileForFiles(self, deviceId: str, file_ids: List[str]) -> None:
         """
         取消特定的文件传输。
         Args:
             deviceId (str): 设备ID。
-            files (List[FileInfo]): 文件信息数组。
+            files (List[str]): 文件信息数组。
         """
-        pass
+        remove_files = []
+        async with self.upload_lock:
+            _logger.info(f"[!] 取消设备 {deviceId} 的上传任务，文件ID: {file_ids}")
+            if deviceId in self.upload_by_other:
+                for file_id in file_ids:
+                    if file_id in self.upload_by_other[deviceId]:
+                        remove_files.append(
+                            os.path.join(
+                                self.upload_by_other[deviceId][file_id]["path"],
+                                f".{file_id}.chunks",
+                            )
+                        )
+                        del self.upload_by_other[deviceId][file_id]
+                        # 如果该设备下已无记录，也移除设备项
+                        if not self.upload_by_other[deviceId]:
+                            del self.upload_by_other[deviceId]
+                    else:
+                        _logger.error(
+                            f"[!] 文件ID {file_id} 不存在于设备 {deviceId} 上传任务中"
+                        )
+                        return
+            else:
+                _logger.error(f"[!] 未找到设备 {deviceId} 的上传任务")
+                return
+
+        # 通知客户端
+        await asyncio.gather(
+            *(self._notify_client_cancel(deviceId, file_id) for file_id in file_ids)
+        )
+
+        remove_cancel_directories(remove_files)
+
+    async def _notify_client_cancel(self, device_id: str, file_id: str) -> None:
+        """
+        向客户端发送取消指令，通知其将对应传输任务标记为 TransferStatus.CANCELED_BY_SERVER。
+        """
+        if device_id not in self.client_connections:
+            _logger.warning(f"[!] 未连接设备 {device_id}")
+            return
+
+        host = self.client_connections[device_id]["host"]
+        port = self.client_connections[device_id]["port"]
+        url = f"http://{host}:{port}/cancel_transfer"
+
+        try:
+            async with aiohttp.ClientSession() as session:
+                async with session.post(url, json={"file_id": file_id}) as resp:
+                    if resp.status == 200:
+                        _logger.info(f"[√] 成功通知客户端取消上传任务 {file_id}")
+                    else:
+                        _logger.error(f"[x] 通知客户端失败: {await resp.text()}")
+        except Exception as e:
+            _logger.error(f"[x] 通知客户端取消失败: {e}")
+
+    async def handle_cancel_transfer(self, request: web.Request) -> web.Response:
+        data = await request.json()
+        file_id = data.get("file_id")
+        if not file_id:
+            return web.Response(status=400, text="Missing file_id")
+
+        for device_id, transfers in self.transfers.items():
+            for tid, t in transfers.items():
+                if tid == file_id:
+                    t["status"] = TransferStatus.CANCELED_BY_SERVER
+                    _logger.info(f"[客户端] 接收到服务端取消任务: {file_id}")
+                    return web.Response(text="Canceled")
+
+        return web.Response(status=404, text="Transfer not found")
 
     def abortReceiveFile(self, deviceId: str) -> None:
         """

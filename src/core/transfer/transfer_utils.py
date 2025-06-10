@@ -9,7 +9,8 @@ from src.utils.logger import _logger
 
 
 def my_progress_callback(filename: str, percent: float):
-    _logger.info(f"[{filename}] Progress: {percent:.2f}%")
+    # _logger.info(f"[{filename}] Progress: {percent:.2f}%")
+    pass
 
 
 def is_image_or_video(filename: str) -> bool:
