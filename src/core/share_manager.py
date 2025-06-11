@@ -26,6 +26,7 @@ from .transfer.transfer_server import (
     remove_cancel_directories_with_retry,
 )
 from .FileSharing.file_sharing import FileSharing
+from .Authentication.auth import Authentication
 from src.utils.logger import _logger
 
 
@@ -55,11 +56,19 @@ class ShareManager:
         # 用于存储所有异步任务(目前用于删除文件)
         self.tasks = []
 
+        # 安全验证模块
+        self.auth = Authentication()
+
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
         # 连接端口，提供/connect接口处理握手请求
         connect_app = web.Application()
-        connect_app.add_routes([web.post("/connect", self.handle_connect)])
+        connect_app.add_routes(
+            [
+                web.post("/connect", self.handle_connect),
+                web.post("/verify_pin", self.handle_verifiy_pin),
+            ]
+        )
         self.connect_runner = web.AppRunner(connect_app)
         await self.connect_runner.setup()
         connect_site = web.TCPSite(
@@ -245,32 +254,6 @@ class ShareManager:
         except Exception as e:
             return web.Response(status=400, text=str(e))
 
-    # 处理连接请求，返回transfer端口
-    async def handle_connect(self, request: web.Request):
-        try:
-            data = await request.json()
-            bind_param = data.get("bindParam", {})
-            from_device_id = bind_param.get("fromDeviceId")
-            _logger.info(f"Received connect request from {from_device_id}")
-            # 初始化上传任务
-            self.upload_by_other[from_device_id] = {}
-            # 这里可以加认证、校验逻辑
-            self.client_connections[from_device_id] = {
-                "host": bind_param.get("host"),
-                "port": bind_param.get("port"),
-                "token": "example_token",  # 这里可以生成一个真实的token
-            }
-            # 返回transfer端口信息给请求方
-            return web.json_response(
-                {
-                    "transfer_port": self.bindDevice.transfer_port,
-                    "token": "example_token",
-                }
-            )
-        except Exception as e:
-            _logger.error(f"Error handling connect request: {str(e)}")
-            return web.json_response({"error": str(e)}, status=500)
-
     # 示例目录列表接口（必须建立连接后才能访问，可在此处校验token）
     async def handle_list(self, request):
         """examples: 返回共享文件列表"""
@@ -292,20 +275,117 @@ class ShareManager:
         """
         pass
 
+    # async def connect(
+    #     self,
+    #     device_id: str,
+    #     bindParam: dict,
+    #     callback: Callable[[Dict[str, str]], Awaitable[Any]] = None,
+    # ) -> None:
+    #     """
+    #     连接局域网设备。
+    #     Args:
+    #         device_id (str): 设备ID。
+    #         bindParam (dict): 连接设备相关参数。
+    #         callback (Callable): 连接设备状态异步回调，参数为{'device_id': str}。
+    #     """
+    #     # 1. 查找设备信息
+    #     device = self._devices.get(device_id)
+    #     if not device:
+    #         if callback:
+    #             await callback(
+    #                 {
+    #                     "device_id": device_id,
+    #                     "status": "failed",
+    #                     "msg": "Device not found",
+    #                 }
+    #             )
+    #         return
+
+    #     # 2. 完成认证流程（含连接请求、PIN 验证等）
+    #     connection_info = await self.auth.authenticate(
+    #         from_device=self.bindDevice,
+    #         to_device=device,
+    #         bind_param=bindParam,
+    #     )
+
+    #     host = device.host_ip
+    #     port = device.conn_port
+
+    #     connect_url = f"http://{host}:{port}/connect"
+
+    #     # 2. 发送连接请求，携带本设备ID和bindParam作为请求体
+    #     payload = {"fromDeviceId": self.bindDevice.device_id, "bindParam": bindParam}
+
+    #     try:
+    #         async with aiohttp.ClientSession() as session:
+    #             async with session.post(connect_url, json=payload, timeout=5) as resp:
+    #                 if resp.status == 200:
+    #                     data = await resp.json()
+    #                     token = data.get("token", None)
+
+    #                     # 存储连接信息
+    #                     self.connections[device_id] = {
+    #                         "host": host,
+    #                         "port": data.get("transfer_port"),
+    #                         "token": token,
+    #                         "status": "connected",
+    #                     }
+
+    #                     # 初始化传输和下载任务列表
+    #                     self.transfers[device_id] = {}
+    #                     self.transfers_locks[device_id] = asyncio.Lock()
+    #                     self.downloads[device_id] = {}
+    #                     self.downloads_locks[device_id] = asyncio.Lock()
+
+    #                     # TODO: Save all connection config here
+
+    #                     if callback:
+    #                         await callback(
+    #                             {
+    #                                 "device_id": device_id,
+    #                                 "status": "success",
+    #                                 "msg": "Connected",
+    #                             }
+    #                         )
+    #                 else:
+    #                     text = await resp.text()
+    #                     if callback:
+    #                         await callback(
+    #                             {
+    #                                 "device_id": device_id,
+    #                                 "status": "failed",
+    #                                 "msg": f"HTTP {resp.status}: {text}",
+    #                             }
+    #                         )
+    #     except asyncio.TimeoutError:
+    #         if callback:
+    #             await callback(
+    #                 {
+    #                     "device_id": device_id,
+    #                     "status": "failed",
+    #                     "msg": "Connection timeout",
+    #                 }
+    #             )
+    #     except Exception as e:
+    #         if callback:
+    #             await callback(
+    #                 {"device_id": device_id, "status": "failed", "msg": str(e)}
+    #             )
+
     async def connect(
         self,
         device_id: str,
         bindParam: dict,
         callback: Callable[[Dict[str, str]], Awaitable[Any]] = None,
-    ) -> None:
+    ) -> Dict[str, Any]:
         """
-        连接局域网设备。
+        连接局域网设备，调用 Authentication 统一完成认证流程（含请求、PIN 输入、token 校验）。
         Args:
-            device_id (str): 设备ID。
-            bindParam (dict): 连接设备相关参数。
-            callback (Callable): 连接设备状态异步回调，参数为{'device_id': str}。
+            device_id (str): 目标设备 ID。
+            bindParam (dict): 连接参数。
+            callback (Callable): 状态异步回调。
         """
-        # 1. 查找设备信息
+        # 1. 查找目标设备信息
         device = self._devices.get(device_id)
         if not device:
             if callback:
@@ -316,57 +396,45 @@ class ShareManager:
                         "msg": "Device not found",
                     }
                 )
-            return
-
-        host = device.host_ip
-        port = device.conn_port
-
-        connect_url = f"http://{host}:{port}/connect"
-
-        # 2. 发送连接请求，携带本设备ID和bindParam作为请求体
-        payload = {"fromDeviceId": self.bindDevice.device_id, "bindParam": bindParam}
+            return {"status": "failed", "msg": "Device not found"}
 
         try:
-            async with aiohttp.ClientSession() as session:
-                async with session.post(connect_url, json=payload, timeout=5) as resp:
-                    if resp.status == 200:
-                        data = await resp.json()
-                        token = data.get("token", None)
+            # 2. 认证阶段（封装完整交互逻辑）
+            connection_info = await self.auth.authenticate(
+                from_device=self.bindDevice,
+                to_device=device,
+                bind_param=bindParam,
+            )
 
-                        # 存储连接信息
-                        self.connections[device_id] = {
-                            "host": host,
-                            "port": data.get("transfer_port"),
-                            "token": token,
-                            "status": "connected",
-                        }
+            # 认证完成后返回 token 和 transfer_port 信息
+            token = connection_info["token"]
+            port = connection_info["transfer_port"]
+            host = device.host_ip
 
-                        # 初始化传输和下载任务列表
-                        self.transfers[device_id] = {}
-                        self.transfers_locks[device_id] = asyncio.Lock()
-                        self.downloads[device_id] = {}
-                        self.downloads_locks[device_id] = asyncio.Lock()
+            # 3. 建立连接状态记录
+            self.connections[device_id] = {
+                "host": host,
+                "port": port,
+                "token": token,
+                "status": "connected",
+            }
 
-                        # TODO: Save all connection config here
+            # 初始化任务结构
+            self.transfers[device_id] = {}
+            self.transfers_locks[device_id] = asyncio.Lock()
+            self.downloads[device_id] = {}
+            self.downloads_locks[device_id] = asyncio.Lock()
 
-                        if callback:
-                            await callback(
-                                {
-                                    "device_id": device_id,
-                                    "status": "success",
-                                    "msg": "Connected",
-                                }
-                            )
-                    else:
-                        text = await resp.text()
-                        if callback:
-                            await callback(
-                                {
-                                    "device_id": device_id,
-                                    "status": "failed",
-                                    "msg": f"HTTP {resp.status}: {text}",
-                                }
-                            )
+            if callback:
+                await callback(
+                    {
+                        "device_id": device_id,
+                        "status": "success",
+                        "msg": "Connected",
+                    }
+                )
+            return {"status": "success", "msg": f"device {device_id} connected"}
+
         except asyncio.TimeoutError:
             if callback:
                 await callback(
@@ -376,11 +444,17 @@ class ShareManager:
                         "msg": "Connection timeout",
                     }
                 )
+            return {"status": "failed", "msg": "Connection timeout"}
         except Exception as e:
             if callback:
                 await callback(
-                    {"device_id": device_id, "status": "failed", "msg": str(e)}
+                    {
+                        "device_id": device_id,
+                        "status": "failed",
+                        "msg": str(e),
+                    }
                 )
+            return {"status": "failed", "msg": str(e)}
 
     def disconnect(self, device_id: str) -> None:
         """
@@ -389,6 +463,98 @@ class ShareManager:
             device_id (str): 设备ID。
         """
         pass
+
+    # 处理连接请求，返回transfer端口
+    async def handle_connect(self, request: web.Request):
+        try:
+            data = await request.json()
+            bind_param = data.get("bindParam", {})
+            from_device_id = bind_param.get("fromDeviceId")
+            _logger.info(f"Received connect request from {from_device_id}")
+
+            # 1. 是否允许连接，由 self.auth 决定
+            accept = await self.auth.should_accept_connection(
+                from_device_id, bind_param
+            )
+
+            if not accept:
+                return web.json_response(
+                    {"error": "Connection rejected by user"}, status=403
+                )
+
+            # 2. 生成 PIN 并设置有效期，例如 120 秒
+            pin_code, session_id = self.auth.generate_pin(
+                from_device_id=from_device_id, expire_seconds=120
+            )
+
+            _logger.info(f"PIN {pin_code} generated for {from_device_id}")
+
+            # # 3. 初始化上传任务
+            # self.upload_by_other[from_device_id] = {}
+            # # 这里可以加认证、校验逻辑
+            # self.client_connections[from_device_id] = {
+            #     "host": bind_param.get("host"),
+            #     "port": bind_param.get("port"),
+            #     "token": "example_token",  # 这里可以生成一个真实的token
+            # }
+            # 返回transfer端口信息给请求方
+            return web.json_response(
+                {
+                    "transfer_port": self.bindDevice.transfer_port,
+                    "pin": pin_code,
+                    "session_id": session_id,
+                    "expire_seconds": 120,  # PIN 有效期
+                }
+            )
+        except Exception as e:
+            _logger.error(f"Error handling connect request: {str(e)}")
+            return web.json_response({"error": str(e)}, status=500)
+
+    async def handle_verifiy_pin(self, request: web.Request):
+        """
+        处理 PIN 验证请求。
+        Args:
+            request (web.Request): HTTP 请求对象。
+        Returns:
+            web.Response: 响应对象，包含验证结果。
+        """
+        try:
+            data = await request.json()
+            session_id = data.get("session_id")
+            pin = data.get("pin")
+
+            if not session_id or not pin:
+                return web.json_response(
+                    {"error": "Missing session_id or pin"}, status=400
+                )
+
+            verified = self.auth.verify_pin(session_id, pin)
+            if verified:
+                # # 3. 初始化上传任务
+                # self.upload_by_other[from_device_id] = {}
+                # # 这里可以加认证、校验逻辑
+                # self.client_connections[from_device_id] = {
+                #     "host": bind_param.get("host"),
+                #     "port": bind_param.get("port"),
+                #     "token": "example_token",  # 这里可以生成一个真实的token
+                # }
+
+                # 完成连接流程，返回 token 和 transfer_port
+                token, transfer_port = self.auth.finalize_connection(
+                    from_device_id=self.bindDevice.device_id
+                )
+                return web.json_response(
+                    {
+                        "status": "success",
+                        "token": token,
+                        "transfer_port": transfer_port,
+                    }
+                )
+            else:
+                return web.json_response({"status": "failed"}, status=403)
+        except Exception as e:
+            _logger.error(f"Error verifying PIN: {str(e)}")
+            return web.json_response({"error": str(e)}, status=500)
 
     def confirmConnect(self) -> None:
         """
