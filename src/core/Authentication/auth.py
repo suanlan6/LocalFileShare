@@ -1,11 +1,8 @@
 import asyncio
 import aiohttp
-import os
 import time
 import uuid
 from typing import Any, Dict, Tuple
-
-from dotenv import load_dotenv
 
 import src.core.Authentication.auth_utils as auth_utils
 from src.common.device import Device
@@ -64,8 +61,10 @@ class Authentication:
         verify_url = f"http://{to_device.host_ip}:{to_device.conn_port}/verify_pin"
         verify_payload = {
             "session_id": session_id,
-            "fromDeviceId": from_device.device_id,
             "pin": user_pin,
+            "fromDeviceId": from_device.device_id,
+            "host": from_device.host_ip,
+            "port": from_device.transfer_port,
         }
 
         async with aiohttp.ClientSession() as session:
@@ -76,7 +75,7 @@ class Authentication:
 
         return {
             "token": verify_data["token"],
-            "transfer_port": verify_data["transfer_port"],
+            "port": verify_data["transfer_port"],
         }
 
     async def prompt_pin_input(self, pin: str, timeout: int) -> str:
@@ -114,10 +113,7 @@ class Authentication:
         session["verified"] = True
         return True
 
-    def finalize_connection(self, from_device_id: str) -> Tuple[str, int]:
+    def finalize_connection(self, transfer_port: str) -> Tuple[str, int]:
         # 生成 token 与返回 transfer_port，确保已验证（目前仅测试使用，后期完善校验）
         token = "example_token"  # 示例值，实际应生成真实的 token
-        load_dotenv()
-        # 读取配置文件
-        transfer_port = os.getenv("TRANSFER_PORT")
         return token, transfer_port

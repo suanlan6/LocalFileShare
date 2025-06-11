@@ -66,7 +66,7 @@ class ShareManager:
         connect_app.add_routes(
             [
                 web.post("/connect", self.handle_connect),
-                web.post("/verify_pin", self.handle_verifiy_pin),
+                web.post("/verify_pin", self.handle_verify_pin),
             ]
         )
         self.connect_runner = web.AppRunner(connect_app)
@@ -408,7 +408,7 @@ class ShareManager:
 
             # 认证完成后返回 token 和 transfer_port 信息
             token = connection_info["token"]
-            port = connection_info["transfer_port"]
+            port = connection_info["port"]
             host = device.host_ip
 
             # 3. 建立连接状态记录
@@ -510,7 +510,7 @@ class ShareManager:
             _logger.error(f"Error handling connect request: {str(e)}")
             return web.json_response({"error": str(e)}, status=500)
 
-    async def handle_verifiy_pin(self, request: web.Request):
+    async def handle_verify_pin(self, request: web.Request):
         """
         处理 PIN 验证请求。
         Args:
@@ -522,6 +522,9 @@ class ShareManager:
             data = await request.json()
             session_id = data.get("session_id")
             pin = data.get("pin")
+            from_device_id = data.get("fromDeviceId")
+            host = data.get("host")
+            port = data.get("port")
 
             if not session_id or not pin:
                 return web.json_response(
@@ -530,19 +533,19 @@ class ShareManager:
 
             verified = self.auth.verify_pin(session_id, pin)
             if verified:
-                # # 3. 初始化上传任务
-                # self.upload_by_other[from_device_id] = {}
-                # # 这里可以加认证、校验逻辑
-                # self.client_connections[from_device_id] = {
-                #     "host": bind_param.get("host"),
-                #     "port": bind_param.get("port"),
-                #     "token": "example_token",  # 这里可以生成一个真实的token
-                # }
 
                 # 完成连接流程，返回 token 和 transfer_port
                 token, transfer_port = self.auth.finalize_connection(
-                    from_device_id=self.bindDevice.device_id
+                    transfer_port=self.bindDevice.transfer_port,
                 )
+                # 3. 初始化上传任务
+                self.upload_by_other[from_device_id] = {}
+                # 这里可以加认证、校验逻辑
+                self.client_connections[from_device_id] = {
+                    "host": host,
+                    "port": port,
+                    "token": token,  # 这里可以生成一个真实的token
+                }
                 return web.json_response(
                     {
                         "status": "success",
@@ -750,7 +753,6 @@ class ShareManager:
         remove_files = []
         remove_tids = []
         async with self.upload_lock:
-            _logger.info(self.upload_by_other)
             for device_id, transfers in self.upload_by_other.items():
                 for tid, t in transfers.items():
                     if tid in file_ids:
