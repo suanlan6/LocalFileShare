@@ -3,6 +3,7 @@ import os
 import json
 import shutil
 import tempfile
+import time
 
 from typing import Dict, Optional
 
@@ -164,12 +165,25 @@ def merge_chunks(
     }
 
 
-def remove_cancel_directories(file_path: list[str]):
-    for path in file_path:
-        if not os.path.exists(path):
-            _logger.warning(f"Path {path} does not exist, skipping removal.")
-            continue
-        shutil.rmtree(path)
+async def remove_cancel_directories_with_retry(paths, max_retries=10, delay=1):
+    for path in paths:
+        for attempt in range(max_retries):
+            try:
+                if os.path.exists(path):
+                    shutil.rmtree(path)
+                    _logger.info(f"[√] 已删除临时分片目录: {path}")
+                break
+            except PermissionError as e:
+                if attempt < max_retries - 1:
+                    _logger.warning(
+                        f"[!] 删除目录失败({e}),{delay}s后重试...（第{attempt+1}次）"
+                    )
+                    await asyncio.sleep(delay)
+                else:
+                    _logger.error(f"[x] 多次重试后仍无法删除目录: {path}，错误: {e}")
+            except Exception as e:
+                _logger.error(f"[x] 删除目录时发生未知错误: {path}，错误: {e}")
+                break
 
 
 async def download_chunk(file_path: str, chunk_index: int, chunk_size: int) -> bytes:
