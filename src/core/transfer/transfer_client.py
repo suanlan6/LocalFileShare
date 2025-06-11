@@ -260,24 +260,116 @@ async def async_send_files(
     return {"status": "success", "message": "All files uploaded successfully"}
 
 
+# async def download_single_file(
+#     file: FileInfo,
+#     dst_path: str,
+#     download_control: Dict[str, Dict[str, Any]],
+#     progress_callback: Optional[Callable[[str, float], None]] = None,
+# ):
+#     """
+#     下载单个文件。
+#     Args:
+#         file (FileInfo): 要下载的文件信息。
+#         dst_path (str): 下载到的目标路径。
+#         download_control (Dict[str, Dict[str, Any]]): 传输控制状态字典，用于跟踪文件传输状态。
+#         progress_callback (Optional[Callable[[str, float], None]]): 可选的进度回调函数，接收文件名和进度百分比。
+#     """
+#     download_url = f"http://{file.host}/download_chunk"
+
+#     async with aiohttp.ClientSession() as session:
+#         # 获取文件大小
+#         if file.type == ShareType.FOLDER:
+#             async with session.get(
+#                 f"http://{file.host}/prepare_folder_download",
+#                 params={"path": file.path},
+#             ) as resp:
+#                 if resp.status != 200:
+#                     raise Exception(f"Failed to prepare folder: {await resp.text()}")
+#                 result = await resp.json()
+#                 file_path = result["zip_path"]
+#                 file_name = result["zip_name"]
+#                 total_size = result["zip_size"]
+#         else:
+#             file_path = file.path
+#             file_name = file.name
+#             total_size = file.size
+#         total_chunks = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
+
+#         file_id = get_file_id(file_name, total_size)
+#         local_tmp_dir = os.path.join(dst_path, f".{file_id}.chunks")
+#         os.makedirs(local_tmp_dir, exist_ok=True)
+
+#         # 下载之前设置初始状态
+#         if download_control is not None:
+#             download_control[file_id] = {
+#                 "status": TransferStatus.RUNNING,
+#                 "event": asyncio.Event(),  # 控制暂停/恢复
+#             }
+
+#         # 分片下载
+#         for chunk_index in range(total_chunks):
+#             if download_control:
+#                 transfer = download_control.get(file_id)
+#                 while transfer and transfer["status"] != TransferStatus.RUNNING:
+#                     if transfer["status"] == TransferStatus.FAILED:
+#                         return
+#                     if transfer["status"] == TransferStatus.COMPLETED:
+#                         return
+#                     await transfer["event"].wait()
+#                     transfer["event"].clear()
+#             chunk_path = os.path.join(local_tmp_dir, f"chunk_{chunk_index}")
+#             if os.path.exists(chunk_path):
+#                 continue
+
+#             async with session.get(
+#                 download_url,
+#                 params={
+#                     "path": file_path,
+#                     "chunk_index": chunk_index,
+#                     "chunk_size": CHUNK_SIZE,
+#                 },
+#             ) as resp:
+#                 if resp.status != 200:
+#                     raise Exception(
+#                         f"Chunk {chunk_index} download failed for {file_name}, error: {await resp.text()}"
+#                     )
+#                 with open(chunk_path, "wb") as f:
+#                     f.write(await resp.read())
+
+#             if progress_callback:
+#                 percent = ((chunk_index + 1) / total_chunks) * 100
+#                 progress_callback(file_name, percent)
+
+#         # 合并文件
+#         local_path = os.path.join(dst_path, file_name)
+#         with open(local_path, "wb") as outfile:
+#             for i in range(total_chunks):
+#                 chunk_path = os.path.join(local_tmp_dir, f"chunk_{i}")
+#                 with open(chunk_path, "rb") as cf:
+#                     outfile.write(cf.read())
+
+#         # 删除临时目录
+#         shutil.rmtree(local_tmp_dir)
+
+#         # ✅ 解压缩逻辑（如果是zip文件）
+#         if file_name.endswith(".zip"):
+#             extract_dir = os.path.join(dst_path, file_name[:-4])  # 去掉.zip
+#             shutil.unpack_archive(local_path, extract_dir)
+#             os.remove(local_path)  # 删除zip包
+
+
 async def download_single_file(
     file: FileInfo,
     dst_path: str,
     download_control: Dict[str, Dict[str, Any]],
+    download_lock: asyncio.Lock,
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ):
-    """
-    下载单个文件。
-    Args:
-        file (FileInfo): 要下载的文件信息。
-        dst_path (str): 下载到的目标路径。
-        download_control (Dict[str, Dict[str, Any]]): 传输控制状态字典，用于跟踪文件传输状态。
-        progress_callback (Optional[Callable[[str, float], None]]): 可选的进度回调函数，接收文件名和进度百分比。
-    """
     download_url = f"http://{file.host}/download_chunk"
+    wait_tasks = []
 
     async with aiohttp.ClientSession() as session:
-        # 获取文件大小
+        # 获取文件信息
         if file.type == ShareType.FOLDER:
             async with session.get(
                 f"http://{file.host}/prepare_folder_download",
@@ -293,34 +385,84 @@ async def download_single_file(
             file_path = file.path
             file_name = file.name
             total_size = file.size
-        total_chunks = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
 
+        total_chunks = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
         file_id = get_file_id(file_name, total_size)
         local_tmp_dir = os.path.join(dst_path, f".{file_id}.chunks")
         os.makedirs(local_tmp_dir, exist_ok=True)
 
-        # 下载之前设置初始状态
-        if download_control is not None:
+        # 设置初始状态
+        async with download_lock:
             download_control[file_id] = {
                 "status": TransferStatus.RUNNING,
-                "event": asyncio.Event(),  # 控制暂停/恢复
+                "event": asyncio.Event(),
             }
 
         # 分片下载
         for chunk_index in range(total_chunks):
-            if download_control:
-                transfer = download_control.get(file_id)
-                while transfer and transfer["status"] != TransferStatus.RUNNING:
-                    if transfer["status"] == TransferStatus.FAILED:
+            # 状态检查（锁内），暂停则等待（锁外）
+            while True:
+                async with download_lock:
+                    transfer = download_control.get(file_id)
+                    if not transfer:
                         return
-                    if transfer["status"] == TransferStatus.COMPLETED:
+                    status = transfer["status"]
+                    event = transfer["event"]
+
+                    if status >= 2:
+                        _logger.info(
+                            f"Download ended (status={status}) for {file_name}"
+                        )
+
+                        # 异步删除服务端 zip 文件
+                        if file.type == ShareType.FOLDER:
+
+                            async def delete_remote_zip():
+                                try:
+                                    async with session.post(
+                                        f"http://{file.host}/delete_folder_package",
+                                        json={"zip_path": file_path},
+                                    ) as resp:
+                                        if resp.status == 200:
+                                            _logger.info(
+                                                f"Remote zip deleted: {file_path}"
+                                            )
+                                        else:
+                                            _logger.warning(
+                                                f"Remote zip delete failed: {await resp.text()}"
+                                            )
+                                except Exception as e:
+                                    _logger.error(f"Error deleting remote zip: {e}")
+
+                            wait_tasks.append(asyncio.create_task(delete_remote_zip()))
+
+                        # 清理本地
+                        try:
+                            shutil.rmtree(local_tmp_dir, ignore_errors=True)
+                            local_zip_path = os.path.join(dst_path, file_name)
+                            if os.path.exists(local_zip_path):
+                                os.remove(local_zip_path)
+                            _logger.info(f"Cleaned local folder for {file_name}")
+                        except Exception as e:
+                            _logger.warning(f"Cleanup failed: {e}")
                         return
-                    await transfer["event"].wait()
-                    transfer["event"].clear()
+
+                    if status == TransferStatus.RUNNING:
+                        break  # 正常下载
+
+                # 暂停等待（锁外）
+                _logger.info(
+                    f"Download paused: waiting to resume {file_name} chunk {chunk_index}"
+                )
+                await event.wait()
+                event.clear()
+
+            # 跳过已下载分片
             chunk_path = os.path.join(local_tmp_dir, f"chunk_{chunk_index}")
             if os.path.exists(chunk_path):
                 continue
 
+            # 下载分片
             async with session.get(
                 download_url,
                 params={
@@ -348,21 +490,24 @@ async def download_single_file(
                 with open(chunk_path, "rb") as cf:
                     outfile.write(cf.read())
 
-        # 删除临时目录
         shutil.rmtree(local_tmp_dir)
 
-        # ✅ 解压缩逻辑（如果是zip文件）
+        # 解压（仅文件夹下载）
         if file_name.endswith(".zip"):
-            extract_dir = os.path.join(dst_path, file_name[:-4])  # 去掉.zip
+            extract_dir = os.path.join(dst_path, file_name[:-4])
             shutil.unpack_archive(local_path, extract_dir)
-            os.remove(local_path)  # 删除zip包
+            os.remove(local_path)
+
+    for task in wait_tasks:
+        await task
 
 
 async def async_download_files(
     dst_path: str,
     share_type: ShareType,
     files: List[FileInfo],
-    download_control=Dict[str, Dict[str, Any]],
+    download_control: Dict[str, Dict[str, Any]],
+    download_lock: asyncio.Lock = asyncio.Lock(),
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ) -> Dict[str, str]:
     # TODO: 下载时暂时没有略缩图
@@ -381,7 +526,9 @@ async def async_download_files(
 
     await asyncio.gather(
         *[
-            download_single_file(f, dst_path, download_control, progress_callback)
+            download_single_file(
+                f, dst_path, download_control, download_lock, progress_callback
+            )
             for f in files
         ]
     )

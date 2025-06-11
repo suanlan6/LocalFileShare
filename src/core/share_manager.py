@@ -42,6 +42,7 @@ class ShareManager:
         self.transfers_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         # key 为 device_id，value 为 {file_id: {"status": ..., "event": ...}}
         self.downloads = {}
+        self.downloads_locks: Dict[str, asyncio.Lock] = defaultdict(asyncio.Lock)
         # (服务端) connections, 保存设备连接信息(host, ip, port, token等)
         self.client_connections: Dict[str, Dict[str, Any]] = {}
         # (服务端)用于记录其他设备上传的文件
@@ -90,6 +91,9 @@ class ShareManager:
                 web.post(
                     "/cancel_transfer_server", self.handle_cancel_transfer_server
                 ),  # 新增取消传输任务接口(服务端)
+                web.post(
+                    "/delete_folder_package", self.handle_delete_cancel_folder_package
+                ),  # 新增删除取消的文件夹包接口(服务端)
             ]
         )
         self.transfer_runner = web.AppRunner(transfer_app)
@@ -136,7 +140,7 @@ class ShareManager:
                 self.transfers[device_id][file_id]["event"].set()
 
     async def pause_download(self, device_id: str, file_id: str):
-        async with self.transfers_locks[device_id]:
+        async with self.downloads_locks[device_id]:
             if (
                 device_id in self.downloads
                 and file_id in self.downloads[device_id]
@@ -146,7 +150,7 @@ class ShareManager:
                 self.downloads[device_id][file_id]["status"] = TransferStatus.PAUSED
 
     async def resume_download(self, device_id: str, file_id: str):
-        async with self.transfers_locks[device_id]:
+        async with self.downloads_locks[device_id]:
             if (
                 device_id in self.downloads
                 and file_id in self.downloads[device_id]
@@ -341,6 +345,7 @@ class ShareManager:
                         self.transfers[device_id] = {}
                         self.transfers_locks[device_id] = asyncio.Lock()
                         self.downloads[device_id] = {}
+                        self.downloads_locks[device_id] = asyncio.Lock()
 
                         # TODO: Save all connection config here
 
@@ -433,6 +438,7 @@ class ShareManager:
             share_type=type,
             files=files,
             download_control=self.downloads[device_id],
+            download_lock=self.downloads_locks[device_id],
             progress_callback=my_progress_callback,  # 可以传入进度回调函数
         )
 
@@ -608,6 +614,51 @@ class ShareManager:
         )
         self.tasks.append(remove_task)
         return web.Response(status=200, text="成功取消传输任务")
+
+    async def cancel_download_client(self, device_id: str, file_ids: List[str]) -> None:
+        """
+        客户端取消下载任务。
+        Args:
+            device_id (str): 设备ID。
+            file_ids (List[str]): 文件ID列表。
+        """
+        if device_id not in self.downloads:
+            _logger.error(f"[客户端] 未找到设备 {device_id} 的下载任务")
+            return
+
+        async with self.downloads_locks[device_id]:
+            for file_id in file_ids:
+                if file_id in self.downloads[device_id]:
+                    self.downloads[device_id][file_id][
+                        "status"
+                    ] = TransferStatus.CANCELED_BY_USER
+                    self.downloads[device_id][file_id]["event"].set()
+                    _logger.info(f"[客户端] 已取消下载任务: {file_id}")
+                else:
+                    _logger.error(
+                        f"[客户端] 未找到下载任务: {file_id} 在设备 {device_id} 上"
+                    )
+
+    async def handle_delete_cancel_folder_package(self, request: web.Request):
+        """
+        删除取消的文件夹包。
+        Args:
+            request (web.Request): HTTP请求对象。
+        Returns:
+            web.Response: 响应对象。
+        """
+        data = await request.json()
+        path = data.get("path")
+        if not path or not os.path.exists(path):
+            return web.Response(status=400, text="Invalid path")
+
+        try:
+            await remove_cancel_directories_with_retry([path])
+            _logger.info(f"已删除取消的文件夹包: {path}")
+            return web.Response(status=200, text="Folder package deleted successfully")
+        except Exception as e:
+            _logger.error(f"删除文件夹包失败: {str(e)}")
+            return web.Response(status=500, text=str(e))
 
     def abortReceiveFile(self, device_id: str) -> None:
         """
