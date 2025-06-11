@@ -65,7 +65,7 @@ def prepare_upload_targets(
 async def upload_single_file(
     file: FileInfo,
     remote_dir: str,
-    deviceId: str,
+    device_id: str,
     host: str,
     port: str,
     upload_url: str,
@@ -101,7 +101,7 @@ async def upload_single_file(
     async with aiohttp.ClientSession() as session:
         # 先查询服务端已有的分片索引
         params = {
-            "from_device_id": deviceId,
+            "from_device_id": device_id,
             "file_id": file_id,
             "filename": file.name,
             "path": remote_dir,
@@ -121,16 +121,40 @@ async def upload_single_file(
             uploaded_chunks = set(await resp.json())
         with open(file.path, "rb") as f:
             for chunk_index in range(total_chunks):
-                # 检查暂停
-                async with transfer_lock:
-                    if transfer_control:
-                        transfer = transfer_control.get(file_id)
-                        while transfer and transfer["status"] != TransferStatus.RUNNING:
-                            if transfer["status"] >= 2:
-                                _logger.info(STATUS_MESSAGE[transfer["status"]])
-                                return
-                            await transfer["event"].wait()
-                            transfer["event"].clear()
+                while True:
+                    async with transfer_lock:
+                        transfer = (
+                            transfer_control.get(file_id) if transfer_control else None
+                        )
+                        if not transfer:
+                            return  # 无效任务
+
+                        status = transfer["status"]
+                        if status >= 2:
+                            _logger.info(STATUS_MESSAGE[status])
+                            return
+
+                        if status == TransferStatus.RUNNING:
+                            break  # 状态正常，退出等待
+
+                        event = transfer["event"]
+
+                    # 锁外等待
+                    await event.wait()
+                    event.clear()
+
+                    # 醒来后再检查状态（可能被取消）
+                    async with transfer_lock:
+                        transfer = (
+                            transfer_control.get(file_id) if transfer_control else None
+                        )
+                        if not transfer or transfer["status"] >= 2:
+                            _logger.info(
+                                STATUS_MESSAGE[transfer["status"]]
+                                if transfer
+                                else "Transfer removed"
+                            )
+                            return
 
                 if chunk_index in uploaded_chunks:
                     continue  # 已上传，跳过
@@ -187,7 +211,7 @@ async def upload_single_file(
 async def async_send_files(
     dst_path: str,
     share_type: ShareType,
-    deviceId: str,
+    device_id: str,
     files: List[FileInfo],
     transfer_control: Dict[str, Dict[str, Any]],
     transfer_lock: asyncio.Lock,
@@ -220,7 +244,7 @@ async def async_send_files(
             upload_single_file(
                 file,
                 remote_dir,
-                deviceId,
+                device_id,
                 host,
                 port,
                 upload_url,
