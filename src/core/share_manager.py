@@ -639,7 +639,11 @@ class ShareManager:
 
         try:
             async with aiohttp.ClientSession() as session:
-                async with session.post(url, json={"file_ids": remove_ids}) as resp:
+                payload = {
+                    "device_id": self.bindDevice.device_id,
+                    "file_ids": remove_ids,
+                }
+                async with session.post(url, json=payload) as resp:
                     if resp.status == 200:
                         _logger.info(f"[√] 成功通知服务端取消上传任务 {remove_ids}")
                     else:
@@ -650,40 +654,41 @@ class ShareManager:
     async def handle_cancel_transfer_server(self, request: web.Request) -> web.Response:
         data = await request.json()
         file_ids = data.get("file_ids")
-        if not file_ids:
-            return web.Response(status=400, text="Missing file_ids")
+        device_id = data.get("device_id")
+
+        if not file_ids or not device_id:
+            return web.Response(status=400, text="Missing file_ids or device_id")
 
         remove_files = []
         remove_tids = []
         async with self.upload_lock:
-            for device_id, transfers in self.upload_by_other.items():
-                for tid, t in transfers.items():
-                    if tid in file_ids:
-                        t["status"] = TransferStatus.CANCELED_BY_SERVER
-                        _logger.info(f"[服务端] 接收到客户端取消任务: {tid}")
-                        remove_files.append(os.path.join(t["path"], f".{tid}.chunks"))
-                        remove_tids.append(tid)
-                    else:
-                        _logger.warning(
-                            f"[服务端] 未找到传输任务: {tid} 在设备 {device_id} 上"
-                        )
-                        return web.Response(
-                            status=404, text=f"Transfer {tid} not found"
-                        )
+            transfers = self.upload_by_other[device_id]
+            for tid in file_ids:
+                if tid in transfers:
+                    transfers[tid]["status"] = TransferStatus.CANCELED_BY_SERVER
+                    _logger.info(f"[服务端] 接收到客户端取消任务: {tid}")
+                    remove_files.append(
+                        os.path.join(transfers[tid]["path"], f".{tid}.chunks")
+                    )
+                    remove_tids.append(tid)
+                else:
+                    _logger.warning(
+                        f"[服务端] 未找到传输任务: {tid} 在设备 {device_id} 上"
+                    )
+                    return web.Response(status=404, text=f"Transfer {tid} not found")
 
-        # 删除上传记录
-        for tid in remove_tids:
-            if tid in self.upload_by_other[device_id]:
-                del self.upload_by_other[device_id][tid]
-                # 如果该设备下已无记录，也移除设备项
-                if not self.upload_by_other[device_id]:
-                    del self.upload_by_other[device_id]
+            # 删除上传记录
+            for tid in remove_tids:
+                del transfers[tid]
+            if not transfers:
+                del self.upload_by_other[device_id]
 
         # 删除取消的分片目录
         remove_task = asyncio.create_task(
             remove_cancel_directories_with_retry(remove_files)
         )
         self.tasks.append(remove_task)
+
         return web.Response(status=200, text="成功取消传输任务")
 
     async def cancel_download_client(self, device_id: str, file_ids: List[str]) -> None:
