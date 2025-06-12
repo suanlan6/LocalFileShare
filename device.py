@@ -12,11 +12,10 @@ class Device:
         self.host_ip = host_ip or self._get_local_ip()
         self.conn_port = conn_port
         self.transfer_port = transfer_port
-
         self.is_super_node = False
-        self.group_id = None
         self.super_node_id = None
-        self.sub_node_ids = []  # 仅超级节点才有
+        self.super_ip = None
+        self.super_port = None
 
     def to_dict(self):
         return {
@@ -27,9 +26,9 @@ class Device:
             "conn_port": self.conn_port,
             "transfer_port": self.transfer_port,
             "is_super_node": self.is_super_node,
-            "group_id": self.group_id,
             "super_node_id": self.super_node_id,
-            "sub_node_ids": self.sub_node_ids,
+            "super_ip": self.super_ip,
+            "super_port": self.super_port
         }
 
     @staticmethod
@@ -44,5 +43,4 @@ class Device:
 
     def __repr__(self):
         return f"<Device {self.device_id} @ {self.host_ip}:{self.conn_port}, super={self.is_super_node}>"
-dev = Device(device_name="NodeA", device_type="sensor", conn_port=8000)
-print(dev.to_dict())
+

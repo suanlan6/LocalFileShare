@@ -89,7 +89,7 @@ def broadcast_super_node_hello(super_device, sub_count, group_limit, get_sub_inf
             data = json.dumps(payload).encode('utf-8')
             #print("data:",data)
             sock.sendto(data, ('<broadcast>', BROADCAST_PORT))
-            print(f"📢 广播 SUPERNODE_HELLO: {super_device.device_id}")
+            #print(f"📢 广播 SUPERNODE_HELLO: {super_device.device_id}")
             time.sleep(interval)
     threading.Thread(target=_broadcast, daemon=True).start()
 

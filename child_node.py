@@ -1,13 +1,17 @@
 from device import Device
+from random import randint
+from super_node import SuperNode
 import socket
 import json
 import threading
 import time
+import queue
 
 join_candidates = []
 joined = False
 heartbeat_lock = threading.Lock()
 heartbeat_started = False
+input_command_listener_started = False
 super_ip = None
 super_port = None
 listener_socket = None
@@ -15,10 +19,18 @@ should_stop_listen = False
 join_event = threading.Event()
 should_abort_join = False
 heartbeat_stop_event = threading.Event()
+input_stop_event = threading.Event()
+input_queue = queue.Queue()
 last_ack_time = time.time()
 join_triggered = False  # 是否已触发加入流程
 first_start=True
+already_super=False
 
+def find_free_port():
+    """从系统动态获取一个空闲端口"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        s.bind(('', 0))
+        return s.getsockname()[1]
 
 def start_heartbeat(device, super_ip, super_port, interval=3):
     global heartbeat_started, last_ack_time
@@ -48,7 +60,7 @@ def start_heartbeat(device, super_ip, super_port, interval=3):
                     msg = json.loads(data.decode("utf-8"))
                     if msg.get("type") == "HEARTBEAT_ACK":
                         last_ack_time = time.time()
-                        print(f"✅ 收到 HEARTBEAT_ACK ← {addr}")
+                        #print(f"✅ 收到 HEARTBEAT_ACK ← {addr}")
                 except Exception as e:
                     print(f"⚠️ 接收 ACK 出错: {e}")
                     break
@@ -64,7 +76,7 @@ def start_heartbeat(device, super_ip, super_port, interval=3):
                 }
                 try:
                     sock.sendto(json.dumps(msg).encode("utf-8"), (super_ip, super_port))
-                    print(f"❤️‍🔥 已发送 HEARTBEAT → {super_ip}:{super_port}")
+                    #print(f"❤️‍🔥 已发送 HEARTBEAT → {super_ip}:{super_port}")
                 except Exception as e:
                     print(f"❌ HEARTBEAT 发送失败: {e}")
             time.sleep(interval)
@@ -96,6 +108,7 @@ def listen_heartbeat_ack(self_device: Device, port_offset=100):
 
 def start_super_node_timeout_checker(self_device: Device, timeout=10):
     def _check():
+        global already_super
         while joined:
             if time.time() - last_ack_time > timeout:
                 print("🛑 检测到超级节点掉线，启动自救")
@@ -103,30 +116,42 @@ def start_super_node_timeout_checker(self_device: Device, timeout=10):
                 from lan_comm import start_hello_broadcast
                 start_hello_broadcast(self_device, lambda: not joined)
                 listen_super_node(self_device)
+
+                wait_time = randint(4, 8)
+                print(f"⏳ 等待加入超级节点（最多 {wait_time}s）...")
+                join_event.wait(timeout=wait_time)
+                from lan_comm import stop_hello_broadcast
+                stop_hello_broadcast()
+                time.sleep(2)
+                if not joined:
+                    if not already_super:
+                        already_super = True
+                        reset_child_node_state()
+                        time.sleep(0.5)
+
+                        #初始化
+                        new_port = find_free_port()
+                        self_device.conn_port = new_port
+                        self_device.is_super_node = True
+                        self_device.super_node_id = self_device.device_id
+                        self_device.super_ip = self_device.host_ip
+                        self_device.super_port = self_device.conn_port
+
+                        print(self_device.to_dict())
+                        super_node = SuperNode(self_device)
+                        super_node.start()
+                else:
+                    print(self_device.to_dict())
+                    #缓兵之计 后面还是要想办法中断重复的线程
+                    input_stop_event.clear()
+                    #start_input_command_listener(self_device)
+
                 break
             time.sleep(3)
 
     threading.Thread(target=_check, daemon=True).start()
 
 
-
-def stop_heartbeat():
-    global heartbeat_started
-    heartbeat_stop_event.set()
-    heartbeat_started = False
-    print("🛑 心跳线程已停止")
-
-
-def stop_listen_super_node():
-    global listener_socket, should_stop_listen
-    should_stop_listen = True
-    if listener_socket:
-        try:
-            listener_socket.close()
-        except Exception as e:
-            print(f"🛑 socket 关闭失败：{e}")
-        listener_socket = None
-        print("🛑 已关闭子节点监听 socket")
 
 
 
@@ -150,7 +175,7 @@ def listen_super_node(self_device: Device, on_join_callback=None, auto_join_call
                 data = conn.recv(65536).decode('utf-8')
                 msg = json.loads(data)
                 msg_type = msg.get("type")
-                print("msg:     ",msg)
+                #print("msg:     ",msg)
                 if msg_type == "NEW_MEMBER":
                     super_info = msg.get("super_node")
                     if super_info:
@@ -186,10 +211,10 @@ def listen_super_node(self_device: Device, on_join_callback=None, auto_join_call
 
 
 def choose_and_join(self_device: Device, on_join_callback):
-    global joined, super_ip, super_port, heartbeat_started, join_candidates,join_triggered,last_ack_time, first_start# ✅ 统一声明
+    global joined, super_ip, super_port, heartbeat_started, join_candidates,join_triggered,last_ack_time, first_start,already_super# ✅ 统一声明
 
-    print("join_candidates", len(join_candidates))
-    print(join_candidates)
+    #print("join_candidates", len(join_candidates))
+    #print(join_candidates)
 
     if joined or not join_candidates:
         join_triggered = False
@@ -222,10 +247,20 @@ def choose_and_join(self_device: Device, on_join_callback):
             sock.close()
 
             super_ip = chosen["host_ip"]
+            self_device.super_ip=chosen["host_ip"]
             super_port = heartbeat_port
+            self_device.super_port=heartbeat_port
 
             print(f"📬 发送 JOIN_CONFIRM → {chosen['host_ip']}:{chosen['conn_port']}")
             print(f"✅ 已选择加入超级节点: {chosen['device_name']}，心跳端口：{heartbeat_port}")
+
+            # 向子节点发送自己的所有设备信息
+
+
+            # 初始化子节点信息
+            self_device.is_super_node = False
+            #self_device.group_id = chosen["group_id"]
+            self_device.super_node_id = chosen['device_id']
 
             # ✅ 开启心跳
             start_heartbeat(self_device, chosen["host_ip"], heartbeat_port)
@@ -253,14 +288,22 @@ def choose_and_join(self_device: Device, on_join_callback):
     join_event.set()
     reset_child_node_state()
     first_start=False
+    already_super=True
     print("⚠️ 子节点内部：未能加入任何超级节点 → 自动晋升为超级节点")
-    time.sleep(0.5)  # 等待 socket 彻底释放
+    time.sleep(randint(1,5))  # 等待 socket 彻底释放
     # ⚠️ 使用新的空闲端口，避免和子节点冲突
-    from main import find_free_port
+    from device_start import find_free_port
     new_port = find_free_port()
     self_device.conn_port = new_port
-
     print(f"🔁 分配新端口用于超级节点：{new_port}")
+
+    self_device.is_super_node = True
+    self_device.super_ip = self_device.host_ip
+    self_device.super_port = self_device.conn_port
+    self_device.super_node_id = self_device.device_id
+    print(self_device.to_dict())
+
+
     from super_node import SuperNode
     super_node = SuperNode(self_device)
     super_node.start()
@@ -285,17 +328,20 @@ def choose_and_join(self_device: Device, on_join_callback):
     """
 
 def reset_child_node_state():
-    global joined, heartbeat_started, join_candidates, should_abort_join,join_triggered
+    global joined, heartbeat_started, join_candidates, should_abort_join,join_triggered, input_command_listener_started
     from lan_comm import stop_hello_broadcast
     joined = False
     join_triggered = False
     heartbeat_started = False
+    input_command_listener_started = False
     should_abort_join = False
     join_candidates.clear()
     join_event.clear()
     stop_hello_broadcast()
     stop_listen_super_node()
-    stop_heartbeat()  # ✅ 新增
+    stop_heartbeat()
+    input_stop_event.set()
+
     print("🧹 已重置子节点状态")
 
 
@@ -326,14 +372,106 @@ def request_global_view(self_device,super_ip, super_port):
             msg = json.loads(response)
 
             if msg.get("type") == "GLOBAL_VIEW_SYNC":
-                names = msg.get("online_device_names", [])
-                print(f"🌐 当前在线设备（{len(names)}）：{', '.join(names)}")
+                device_info_map = msg.get("online_device_info", {})  # 新字段
+
+                print(f"🌐 当前在线设备总数：{len(device_info_map)}")
+                for dev_id, dev_info in device_info_map.items():
+                    print(f"\n🆔 设备ID: {dev_id}")
+                    print(f"📦 设备信息: {json.dumps(dev_info, indent=2, ensure_ascii=False)}")
+
     except Exception as e:
         print(f"❌ 获取视图失败：{e}")
 
+
+def request_one_device_info(self_device,super_ip, super_port,target_device_name):
+    payload = {
+        "type": "REQUEST_ONE_DEVICE_INFO",
+        "device_id": self_device.device_id,
+        "target_device_name" : target_device_name
+    }
+
+    try:
+        with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+            s.connect((super_ip, super_port))
+            s.send(json.dumps(payload).encode("utf-8"))
+
+            response = s.recv(65536).decode("utf-8")
+            msg = json.loads(response)
+
+            if msg.get("type") == "TARGET_DEVICE_SYNC":
+                if msg.get("is_find")==True:
+                    print(f"🌐 该设备信息")
+                    print(msg.get("target_device_info"))
+
+
+                else:
+                    print("未找到该设备")
+    except Exception as e:
+        print(f"❌ 获取目标设备信息失败：{e}")
+
+import threading
+import queue
+import time
+
+# 控制输入监听线程的停止标志
+input_stop_event = threading.Event()
+input_queue = queue.Queue()
+
+def input_reader():
+    """专门读取用户输入，并放入队列中"""
+    while not input_stop_event.is_set():
+        try:
+            time.sleep(0.5)
+            line = input("💡 输入 view 获取当前在线设备列表: ")
+            input_queue.put(line.strip().lower())
+        except EOFError:
+            break
+
 def start_input_command_listener(self_device):
+
+    def _input_loop():
+        while not input_stop_event.is_set():
+            try:
+                cmd = input_queue.get(timeout=0.5)  # 非阻塞，带超时
+            except queue.Empty:
+                continue  # 没有输入，继续轮询
+
+            if cmd == "view":
+                print("输入指令正确")
+                if joined and super_ip and super_port:
+                    print("正在请求全局视图")
+                    request_global_view(self_device, super_ip, super_port)
+                else:
+                    print("⚠️ 未连接超级节点，无法获取视图。")
+            else:
+                print("❓ 未知命令")
+            """
+            elif cmd == "find":
+                print("输入指令正确，接下来输入要寻找的设备名：")
+                try:
+                    name = input("请输入设备名: ").strip()
+                except EOFError:
+                    break
+                print(f"您的输入为 {name}")
+                if joined and super_ip and super_port:
+                    print(f"正在请求 {name} 设备信息")
+                    request_one_device_info(self_device, super_ip, super_port, name)
+                else:
+                    print("⚠️ 未连接超级节点，无法获取视图。")
+            """
+
+
+    # 启动两个线程：一个是输入读取器，一个是命令处理器
+    threading.Thread(target=input_reader, daemon=True).start()
+    threading.Thread(target=_input_loop, daemon=True).start()
+
+
+""""
+def start_input_command_listener(self_device):
+
     def _input_loop():
         while True:
+
             cmd = input("💡 输入 view 获取当前在线设备列表: ").strip().lower()
             if cmd == "view":
                 print("输入指令正确")
@@ -343,9 +481,41 @@ def start_input_command_listener(self_device):
                     request_global_view(self_device, super_ip, super_port)
                 else:
                     print("⚠️ 未连接超级节点，无法获取视图。")
+
+            elif cmd =="find":
+                print("输入指令正确，接下来输入要寻找的设备名： ")
+                name=input().strip()
+                print(f"您的输入为{name}")
+                if joined and super_ip and super_port:
+                    print(f"正在请求 {name} 设备信息")
+                    request_one_device_info(self_device, super_ip, super_port, name)
+
+                else:
+                    print("⚠️ 未连接超级节点，无法获取视图。")
+
             else:
                 print("❓ 未知命令")
 
-    threading.Thread(target=_input_loop).start()
+        #print("input线程已停止")
 
+    threading.Thread(target=_input_loop, daemon=True).start()
+"""
+
+def stop_heartbeat():
+    global heartbeat_started
+    heartbeat_stop_event.set()
+    heartbeat_started = False
+    print("🛑 心跳线程已停止")
+
+
+def stop_listen_super_node():
+    global listener_socket, should_stop_listen
+    should_stop_listen = True
+    if listener_socket:
+        try:
+            listener_socket.close()
+        except Exception as e:
+            print(f"🛑 socket 关闭失败：{e}")
+        listener_socket = None
+        print("🛑 已关闭子节点监听 socket")
 
