@@ -1,15 +1,14 @@
 import json
 import time
-from device_start import node_start, get_all_device_info
-from device import Device
+from src.core.Discovery.device_start import node_start, get_all_device_info
+from src.common.device import Device
 
 if __name__ == "__main__":
     name = input("请输入设备名称: ").strip()
     device = Device(device_name=name)
     node_start(device)
 
-
-    #调用get_all_device_info示例
+    # 调用get_all_device_info示例
     while True:
         time.sleep(15)
         print("\n🛰️ [定时获取全网设备信息]")
