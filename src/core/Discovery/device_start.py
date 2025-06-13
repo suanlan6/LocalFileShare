@@ -68,7 +68,9 @@ def find_free_port():
         return s.getsockname()[1]
 
 
-def node_start(device, stop_event: threading.Event = None):
+def node_start(
+    device, ready_event: threading.Event, stop_event: threading.Event = None
+):
     # 分配空闲端口并创建本机设备对象
     port = find_free_port()
     # device_name = generate_unique_name()
@@ -132,8 +134,9 @@ def node_start(device, stop_event: threading.Event = None):
                 print(f"\n🆔 设备ID: {dev_id}")
                 print(f"📦 设备信息: {json.dumps(dev_info, indent=2, ensure_ascii=False)}")
     """
+    ready_event.set()  # 通知share_manager已准备就绪
     try:
-        while True:
+        while stop_event is None or not stop_event.is_set():
             time.sleep(1)
     except KeyboardInterrupt:
         _logger.info("\n🛑 程序已退出")

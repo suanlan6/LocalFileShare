@@ -7,7 +7,9 @@ import queue
 
 from src.common.device import Device
 from .super_node import SuperNode
-from src.utils.logger import _logger
+from src.utils.logger import get_logger
+
+_logger = get_logger("child_node_logger")
 
 join_candidates = []
 joined = False
@@ -186,7 +188,7 @@ def listen_super_node(
                     if super_info:
                         super_info["is_full"] = msg.get("is_full", False)
                         _logger.info(
-                            f"📥 收到超级节点邀请：{super_info['device_name']}"
+                            f"📥 {self_device.device_name} 收到超级节点邀请：{super_info['device_name']}"
                         )
                         join_candidates.append(super_info)
 
@@ -204,6 +206,8 @@ def listen_super_node(
                 elif msg_type == "GLOBAL_VIEW_SYNC":
                     names = msg.get("online_device_names", [])
                     _logger.info(f"📡 全局在线设备（{len(names)}）：{', '.join(names)}")
+                else:
+                    _logger.warning(f"❓ 未知消息类型：{msg_type}, msg: {msg}")
 
             except socket.timeout:
                 continue
@@ -276,7 +280,7 @@ def choose_and_join(self_device: Device, on_join_callback):
             joined = True
             join_triggered = False
 
-            _logger.info("child_node joined:", joined)
+            _logger.info(f"child_node joined: {joined}")
             # listen_heartbeat_ack(self_device)
             last_ack_time = time.time()
             start_super_node_timeout_checker(self_device)

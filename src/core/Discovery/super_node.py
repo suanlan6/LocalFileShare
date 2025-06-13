@@ -326,7 +326,7 @@ class SuperNode:
                 )
 
                 _logger.info(
-                    f"📨 向 {dev_info['device_name']} 发出加入邀请（挂起确认）"
+                    f"📨 {self.device.device_name} 向 {dev_info['device_name']} 发出加入邀请（挂起确认）"
                 )
 
         send_sync_to_child(dev_info["host_ip"], dev_info["conn_port"], payload)

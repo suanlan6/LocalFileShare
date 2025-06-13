@@ -64,12 +64,16 @@ class ShareManager:
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
         # 启动设备发现功能
-        # self.stop_event = Event()
-        # self.discovery_thread = Thread(
-        #     target=node_start, args=(self.bindDevice, self.stop_event), daemon=True
-        # )
-        # self.discovery_thread.start()
-        node_start(self.bindDevice)
+        self.stop_event = Event()
+        ready_event = Event()
+        self.discovery_thread = Thread(
+            target=node_start,
+            args=(self.bindDevice, ready_event, self.stop_event),
+            daemon=True,
+        )
+        self.discovery_thread.start()
+        # 等待设备发现线程准备就绪
+        ready_event.wait(timeout=15)
         _logger.info(f"Discovery started for device {self.bindDevice.device_id}")
 
         # 连接端口，提供/connect接口处理握手请求
@@ -138,9 +142,9 @@ class ShareManager:
         _logger.info("All tasks completed and cleared.")
 
         # 停止设备发现线程
-        # self.stop_event.set()
-        # self.discovery_thread.join(timeout=5)
-        # _logger.info("Discovery thread stopped.")
+        self.stop_event.set()
+        self.discovery_thread.join(timeout=5)
+        _logger.info("Discovery thread stopped.")
 
     async def pause_upload_client(self, device_id: str, file_id: str):
         """如果任务是执行状态，中断上传任务"""

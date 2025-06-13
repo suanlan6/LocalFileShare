@@ -28,11 +28,13 @@ def start_hello_broadcast(device, should_continue, interval=5):
             payload = {"type": "HELLO", "device": device.to_dict()}
             data = json.dumps(payload).encode(ENCODING)
             sock.sendto(data, (BROADCAST_ADDR, BROADCAST_PORT))
-            _logger.info(f"📡 广播 HELLO：{device.device_id}")
+            _logger.info(f"📡 广播 HELLO：{device.device_name}")
             time.sleep(interval)
 
         sock.close()
-        _logger.info("🛑 停止子节点 HELLO 广播")
+        _logger.info(
+            f"🛑 停止子节点{device.device_name} HELLO 广播, 原因: should_stop: {_hello_broadcast_should_stop}, should_coutinue: {should_continue()}"
+        )
 
     _hello_broadcast_thread = threading.Thread(target=_broadcast, daemon=True)
     _hello_broadcast_thread.start()
