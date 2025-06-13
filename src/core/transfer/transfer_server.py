@@ -152,12 +152,19 @@ def merge_chunks(
     shutil.rmtree(chunk_dir)
 
     # 解压缩逻辑
-    if unzip_after_merge and output_file.endswith(".zip"):
-        extract_dir = os.path.join(
-            path, os.path.splitext(os.path.basename(output_file))[0]
-        )
-        shutil.unpack_archive(output_file, extract_dir)  # 解压到当前 path
-        os.remove(output_file)  # 删除 zip 包
+    try:
+        if unzip_after_merge and output_file.endswith(".zip"):
+            extract_dir = os.path.join(
+                path, os.path.splitext(os.path.basename(output_file))[0]
+            )
+            shutil.unpack_archive(output_file, extract_dir)  # 解压到当前 path
+            os.remove(output_file)  # 删除 zip 包
+    except Exception as e:
+        _logger.error(f"Error during unzipping: {e}")
+        return {
+            "status": "error",
+            "message": f"Failed to unzip file {filename}: {str(e)}",
+        }
     return {
         "status": "success",
         "message": f"File {filename} merged successfully",
