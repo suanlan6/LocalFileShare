@@ -7,6 +7,7 @@ import json
 from typing import Callable, Dict, Optional, Any, Awaitable, List
 from collections import defaultdict
 from aiohttp import web, ClientSession
+from threading import Thread, Event
 
 from src.common.fileConf import ShareType, FileInfo
 from src.common.device import Device
@@ -27,6 +28,7 @@ from .transfer.transfer_server import (
 )
 from .FileSharing.file_sharing import FileSharing
 from .Authentication.auth import Authentication
+from .Discovery.device_start import node_start, get_all_device_info
 from src.utils.logger import _logger
 
 
@@ -61,6 +63,15 @@ class ShareManager:
 
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
+        # 启动设备发现功能
+        # self.stop_event = Event()
+        # self.discovery_thread = Thread(
+        #     target=node_start, args=(self.bindDevice, self.stop_event), daemon=True
+        # )
+        # self.discovery_thread.start()
+        node_start(self.bindDevice)
+        _logger.info(f"Discovery started for device {self.bindDevice.device_id}")
+
         # 连接端口，提供/connect接口处理握手请求
         connect_app = web.Application()
         connect_app.add_routes(
@@ -124,6 +135,12 @@ class ShareManager:
         for task in self.tasks:
             await task
         self.tasks.clear()
+        _logger.info("All tasks completed and cleared.")
+
+        # 停止设备发现线程
+        # self.stop_event.set()
+        # self.discovery_thread.join(timeout=5)
+        # _logger.info("Discovery thread stopped.")
 
     async def pause_upload_client(self, device_id: str, file_id: str):
         """如果任务是执行状态，中断上传任务"""
@@ -267,7 +284,7 @@ class ShareManager:
         """
         扫描当前局域网内的接入设备。
         """
-        pass
+        self._devices = get_all_device_info(self.bindDevice)
 
     def stopScan(self) -> None:
         """
