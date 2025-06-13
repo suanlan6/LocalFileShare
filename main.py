@@ -1,18 +1,23 @@
 import json
 import time
+import threading
 from device_start import node_start, get_all_device_info
 from device import Device
 
 if __name__ == "__main__":
     name = input("请输入设备名称: ").strip()
     device = Device(device_name=name)
-    node_start(device)
+
+    # 启动 node_start(device) 作为后台线程
+    t = threading.Thread(target=node_start, args=(device,), daemon=True)
+    t.start()
 
 
-    #调用get_all_device_info示例
+    # 调用 get_all_device_info 示例
     while True:
         time.sleep(15)
         print("\n🛰️ [定时获取全网设备信息]")
+
 
         devices = get_all_device_info(device)
         print(f"✅ 当前在线设备总数：{len(devices)}")
