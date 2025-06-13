@@ -48,6 +48,9 @@ def prepare_upload_targets(
 
             # 初始化传输控制状态
             transfer_control[get_file_id(zip_name, zip_info.size)] = {
+                "filename": file.name,
+                "size": zip_info.size,
+                "progress": 0.0,
                 "status": TransferStatus.RUNNING,
                 "event": asyncio.Event(),
             }
@@ -56,6 +59,9 @@ def prepare_upload_targets(
 
             # 初始化传输控制状态
             transfer_control[get_file_id(file.name, file.size)] = {
+                "filename": file.name,
+                "size": file.size,
+                "progress": 0.0,
                 "status": TransferStatus.RUNNING,
                 "event": asyncio.Event(),
             }
@@ -119,6 +125,12 @@ async def upload_single_file(
                     f"Failed to fetch uploaded chunks, error message: {await resp.text()}"
                 )
             uploaded_chunks = set(await resp.json())
+
+        # 检查文件是否存在
+        if not os.path.exists(file.path):
+            _logger.warning(f"File not found: {file.path}")
+            return
+
         with open(file.path, "rb") as f:
             for chunk_index in range(total_chunks):
                 while True:
@@ -163,6 +175,7 @@ async def upload_single_file(
                 data = f.read(CHUNK_SIZE)
 
                 headers = {
+                    "X-Device-Id": device_id,
                     "X-Filename": file.name,
                     "X-Chunk-Index": str(chunk_index),
                     "X-Total-Chunks": str(total_chunks),
@@ -175,9 +188,11 @@ async def upload_single_file(
                         raise Exception(
                             f"Chunk {chunk_index} upload failed, error message: {await r.text()}"
                         )
-
+                # 更新传输控制状态
+                percent = ((chunk_index + 1) / total_chunks) * 100
+                async with transfer_lock:
+                    transfer_control[file_id]["progress"] = percent
                 if progress_callback:
-                    percent = ((chunk_index + 1) / total_chunks) * 100
                     progress_callback(file.name, percent)
 
         # 所有分片上传完成后，发起合并请求
@@ -296,6 +311,9 @@ async def download_single_file(
         # 设置初始状态
         async with download_lock:
             download_control[file_id] = {
+                "filename": file_name,
+                "size": total_size,
+                "progress": 0.0,
                 "status": TransferStatus.RUNNING,
                 "event": asyncio.Event(),
             }
@@ -380,8 +398,11 @@ async def download_single_file(
                 with open(chunk_path, "wb") as f:
                     f.write(await resp.read())
 
+            # 更新传输控制状态
+            percent = ((chunk_index + 1) / total_chunks) * 100
+            async with download_lock:
+                download_control[file_id]["progress"] = percent
             if progress_callback:
-                percent = ((chunk_index + 1) / total_chunks) * 100
                 progress_callback(file_name, percent)
 
         # 合并文件

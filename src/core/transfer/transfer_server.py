@@ -5,7 +5,7 @@ import shutil
 import tempfile
 import time
 
-from typing import Dict, Optional
+from typing import Dict, Any, Optional
 
 from src.common.global_config import CHUNK_SIZE
 from src.utils.logger import _logger
@@ -16,6 +16,9 @@ async def upload_chunk(
     file_id: str,
     path: str,
     chunk_index: int,
+    total_chunks: int,
+    upload_by_other_device: Dict[str, Dict[str, Any]],
+    upload_lock: asyncio.Lock,
     content: asyncio.StreamReader,
 ) -> Dict[str, str]:
     """
@@ -39,6 +42,16 @@ async def upload_chunk(
             if not chunk:
                 break
             f.write(chunk)
+
+    # 更新来自其他设备的上传进度
+    percent = (chunk_index + 1) / total_chunks * 100
+    try:
+        async with upload_lock:
+            upload_by_other_device[file_id]["progress"] = percent
+    except KeyError:
+        _logger.error(f"[{file_id}] 上传进度更新失败, 可能是因为文件传输取消或被删除")
+    except Exception as e:
+        _logger.error(f"[{file_id}] 更新上传进度时发生错误: {str(e)}")
     return {"status": "success", "message": "Chunk uploaded successfully"}
 
 

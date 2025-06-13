@@ -192,15 +192,20 @@ class ShareManager:
 
     async def handle_upload_chunk(self, request: web.Request):
         headers = request.headers
+        device_id = headers.get("X-Device-Id")
         file_id = headers.get("X-File-Id")
         filename = headers.get("X-Filename")
         path = headers.get("X-Path")
         chunk_index = int(headers.get("X-Chunk-Index"))
+        total_chunks = int(headers.get("X-Total-Chunks"))
 
         result = await upload_chunk(
             file_id=file_id,
             path=path,
             chunk_index=chunk_index,
+            total_chunks=total_chunks,
+            upload_by_other_device=self.upload_by_other[device_id],
+            upload_lock=self.upload_lock,
             content=request.content,
         )
 
