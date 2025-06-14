@@ -1,5 +1,6 @@
 class SHAUtil:
-    """一个简化版的 SHA-like 哈希算法"""
+    """一个简化版的 SHA-like 哈希算法，仅用于生成 file_id"""
+
     def __init__(self):
         self._hash = 0xABCDEF1234567890  # 初始值
 
@@ -9,7 +10,7 @@ class SHAUtil:
             self._hash &= 0xFFFFFFFFFFFFFFFF  # 保持 64-bit
 
     def hexdigest(self):
-        return hex(self._hash)[2:].rjust(16, '0')
+        return hex(self._hash)[2:].rjust(16, "0")
 
 
 # 用法示例
