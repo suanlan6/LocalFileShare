@@ -1,0 +1,4125 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<ui version="4.0">
+ <author>Wanderson M. Pimenta</author>
+ <class>MainWindow</class>
+ <widget class="QMainWindow" name="MainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>1280</width>
+    <height>712</height>
+   </rect>
+  </property>
+  <property name="minimumSize">
+   <size>
+    <width>940</width>
+    <height>560</height>
+   </size>
+  </property>
+  <property name="windowTitle">
+   <string>MainWindow</string>
+  </property>
+  <widget class="QWidget" name="styleSheet">
+   <property name="font">
+    <font>
+     <family>Segoe UI</family>
+     <pointsize>10</pointsize>
+     <italic>false</italic>
+     <bold>false</bold>
+    </font>
+   </property>
+   <property name="styleSheet">
+    <string notr="true">/* /////////////////////////////////////////////////////////////////////////////////////////////////
+
+SET APP STYLESHEET - FULL STYLES HERE
+DARK THEME - DRACULA COLOR BASED
+
+# BY: WANDERSON M.PIMENTA
+# PROJECT MADE WITH: Qt Designer and PySide6
+# V: 1.0.0
+#
+# This project can be used freely for all uses, as long as they maintain the
+# respective credits only in the Python scripts, any information in the visual
+# interface (GUI) can be modified without any implication.
+#
+# There are limitations on Qt licenses if you want to use your products
+# commercially, I recommend reading them on the official website:
+# https://doc.qt.io/qtforpython/licenses.html
+
+///////////////////////////////////////////////////////////////////////////////////////////////// */
+
+QWidget{
+	color: #333;
+	font: 10pt &quot;Segoe UI&quot;;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Tooltip */
+QToolTip {
+	color: #333;
+	background-color: #f8f8f2;
+	border: 1px solid #CCC;
+	background-image: none;
+	background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 2px solid rgb(255, 121, 198);
+	text-align: left;
+	padding-left: 8px;
+	margin: 0px;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Bg App */
+#bgApp {	
+	background-color: #f8f8f2;
+	border: 1px solid #CCC;
+    color: #44475a;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Left Menu */
+#leftMenuBg {	
+	background-color: #6272a4;
+}
+#topLogo {
+	background-color: #6272a4;
+	background-image: url(:/images/images/MNS.png);
+	background-position: centered;
+	background-repeat: no-repeat;
+}
+#titleLeftApp { font: 63 12pt &quot;Segoe UI Semibold&quot;; color: #f8f8f2; }
+#titleLeftDescription { font: 8pt &quot;Segoe UI&quot;; color: #bd93f9; }
+
+/* MENUS */
+#topMenu .QPushButton {	
+	background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 22px solid transparent;
+	background-color: transparent;
+	text-align: left;
+	padding-left: 44px;
+    color: #f8f8f2;
+}
+#topMenu .QPushButton:hover {
+	background-color: #bd93f9;
+}
+#topMenu .QPushButton:pressed {	
+	background-color: #ff79c6;
+	color: rgb(255, 255, 255);
+}
+#bottomMenu .QPushButton {	
+	background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 20px solid transparent;
+	background-color:transparent;
+	text-align: left;
+	padding-left: 44px;
+    color: #f8f8f2;
+}
+#bottomMenu .QPushButton:hover {
+	background-color: #bd93f9;
+}
+#bottomMenu .QPushButton:pressed {	
+	background-color: #ff79c6;
+	color: rgb(255, 255, 255);
+}
+#leftMenuFrame{
+	border-top: 3px solid #6a7cb1;
+}
+
+/* Toggle Button */
+#toggleButton {
+	background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 20px solid transparent;
+	background-color: #5b6996;
+	text-align: left;
+	padding-left: 44px;
+	color: #f8f8f2;
+}
+#toggleButton:hover {
+	background-color: #bd93f9;
+}
+#toggleButton:pressed {	
+	background-color: #ff79c6;
+	color: rgb(255, 255, 255);
+}
+
+/* Title Menu */
+#titleRightInfo { padding-left: 10px; }
+
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Extra Tab */
+#extraLeftBox {	
+	background-color: #495474;
+    color: #f8f8f2;
+}
+#extraTopBg{	
+	background-color: rgb(189, 147, 249)
+}
+
+/* Icon */
+#extraIcon {
+	background-position: center;
+	background-repeat: no-repeat;
+	background-image: url(:/icons/icons/icon_settings.png);
+}
+
+/* Label */
+#extraLabel { color: rgb(255, 255, 255); }
+
+/* Btn Close */
+#extraCloseColumnBtn { background-color: rgba(255, 255, 255, 0); border: none;  border-radius: 5px; }
+#extraCloseColumnBtn:hover { background-color: rgb(196, 161, 249); border-style: solid; border-radius: 4px; }
+#extraCloseColumnBtn:pressed { background-color: rgb(180, 141, 238); border-style: solid; border-radius: 4px; }
+
+/* Extra Content */
+#extraContent{
+	border-top: 3px solid #6272a4;
+}
+
+/* Extra Top Menus */
+#extraTopMenu .QPushButton {
+    background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 22px solid transparent;
+	background-color:transparent;
+	text-align: left;
+	padding-left: 44px;
+    color: #f8f8f2;
+}
+#extraTopMenu .QPushButton:hover {
+	background-color: #5d6c99;
+}
+#extraTopMenu .QPushButton:pressed {	
+	background-color: rgb(189, 147, 249);
+	color: rgb(255, 255, 255);
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Content App */
+#contentTopBg{	
+	background-color: #6272a4;
+}
+#contentBottom{
+	border-top: 3px solid #bd93f9;
+}
+#titleRightInfo{
+    color: #f8f8f2;
+}
+
+/* Top Buttons */
+#rightButtons .QPushButton { background-color: rgba(255, 255, 255, 0); border: none;  border-radius: 5px; }
+#rightButtons .QPushButton:hover { background-color: #bd93f9; border-style: solid; border-radius: 4px; }
+#rightButtons .QPushButton:pressed { background-color: #ff79c6; border-style: solid; border-radius: 4px; }
+
+/* Theme Settings */
+#extraRightBox { background-color: #495474; }
+#themeSettingsTopDetail { background-color: #6272a4; }
+
+/* Bottom Bar */
+#bottomBar { background-color: #495474 }
+#bottomBar QLabel { font-size: 11px; color: #f8f8f2; padding-left: 10px; padding-right: 10px; padding-bottom: 2px; }
+
+/* CONTENT SETTINGS */
+/* MENUS */
+#contentSettings .QPushButton {
+    background-position: left center;
+    background-repeat: no-repeat;
+	border: none;
+	border-left: 22px solid transparent;
+	background-color:transparent;
+	text-align: left;
+	padding-left: 44px;
+    color: #f8f8f2;
+}
+#contentSettings .QPushButton:hover {
+	background-color: #5d6c99;
+}
+#contentSettings .QPushButton:pressed {	
+	background-color: rgb(189, 147, 249);
+	color: rgb(255, 255, 255);
+}
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+QTableWidget */
+QTableWidget {	
+	background-color: transparent;
+	padding: 10px;
+	border-radius: 5px;
+	gridline-color: #9faeda;
+    outline: none;
+}
+QTableWidget::item{
+	border-color: #9faeda;
+	padding-left: 5px;
+	padding-right: 5px;
+	gridline-color: #9faeda;
+}
+QTableWidget::item:selected{
+	background-color: rgb(189, 147, 249);
+    color: #f8f8f2;
+}
+QHeaderView::section{
+	background-color: #6272a4;
+	max-width: 30px;
+	border: none;
+	border-style: none;
+}
+QTableWidget::horizontalHeader {	
+	background-color: #6272a4;
+}
+QHeaderView::section:horizontal
+{
+    border: 1px solid #6272a4;
+	background-color: #6272a4;
+	padding: 3px;
+	border-top-left-radius: 7px;
+    border-top-right-radius: 7px;
+    color: #f8f8f2;
+}
+QHeaderView::section:vertical
+{
+    border: 1px solid #6272a4;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+LineEdit */
+QLineEdit {
+	background-color: #6272a4;
+	border-radius: 5px;
+	border: 2px solid #6272a4;
+	padding-left: 10px;
+	selection-color: rgb(255, 255, 255);
+	selection-background-color: rgb(255, 121, 198);
+    color: #f8f8f2;
+}
+QLineEdit:hover {
+	border: 2px solid rgb(64, 71, 88);
+}
+QLineEdit:focus {
+	border: 2px solid #ff79c6;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+PlainTextEdit */
+QPlainTextEdit {
+	background-color: #6272a4;
+	border-radius: 5px;
+	padding: 10px;
+	selection-color: rgb(255, 255, 255);
+	selection-background-color: rgb(255, 121, 198);
+    color: #f8f8f2;
+}
+QPlainTextEdit  QScrollBar:vertical {
+    width: 8px;
+ }
+QPlainTextEdit  QScrollBar:horizontal {
+    height: 8px;
+ }
+QPlainTextEdit:hover {
+	border: 2px solid rgb(64, 71, 88);
+}
+QPlainTextEdit:focus {
+	border: 2px solid #ff79c6;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+ScrollBars */
+QScrollBar:horizontal {
+    border: none;
+    background: #6272a4;
+    height: 8px;
+    margin: 0px 21px 0 21px;
+	border-radius: 0px;
+}
+QScrollBar::handle:horizontal {
+    background: rgb(189, 147, 249);
+    min-width: 25px;
+	border-radius: 4px
+}
+QScrollBar::add-line:horizontal {
+    border: none;
+    background: #6272a4;
+    width: 20px;
+	border-top-right-radius: 4px;
+    border-bottom-right-radius: 4px;
+    subcontrol-position: right;
+    subcontrol-origin: margin;
+}
+QScrollBar::sub-line:horizontal {
+    border: none;
+    background: #6272a4;
+    width: 20px;
+	border-top-left-radius: 4px;
+    border-bottom-left-radius: 4px;
+    subcontrol-position: left;
+    subcontrol-origin: margin;
+}
+QScrollBar::up-arrow:horizontal, QScrollBar::down-arrow:horizontal
+{
+     background: none;
+}
+QScrollBar::add-page:horizontal, QScrollBar::sub-page:horizontal
+{
+     background: none;
+}
+ QScrollBar:vertical {
+	border: none;
+    background-color: #6272a4;
+    width: 8px;
+    margin: 21px 0 21px 0;
+	border-radius: 0px;
+ }
+ QScrollBar::handle:vertical {	
+	background: rgb(189, 147, 249);
+    min-height: 25px;
+	border-radius: 4px
+ }
+ QScrollBar::add-line:vertical {
+     border: none;
+    background: #6272a4;
+     height: 20px;
+	border-bottom-left-radius: 4px;
+    border-bottom-right-radius: 4px;
+     subcontrol-position: bottom;
+     subcontrol-origin: margin;
+ }
+ QScrollBar::sub-line:vertical {
+	border: none;
+    background: #6272a4;
+     height: 20px;
+	border-top-left-radius: 4px;
+    border-top-right-radius: 4px;
+     subcontrol-position: top;
+     subcontrol-origin: margin;
+ }
+ QScrollBar::up-arrow:vertical, QScrollBar::down-arrow:vertical {
+     background: none;
+ }
+
+ QScrollBar::add-page:vertical, QScrollBar::sub-page:vertical {
+     background: none;
+ }
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+CheckBox */
+QCheckBox::indicator {
+    border: 3px solid #6272a4;
+	width: 15px;
+	height: 15px;
+	border-radius: 10px;
+    background: #6272a4;
+}
+QCheckBox::indicator:hover {
+    border: 3px solid rgb(119, 136, 187);
+}
+QCheckBox::indicator:checked {
+    background: 3px solid #bd93f9;
+	border: 3px solid #bd93f9;	
+	background-image: url(:/icons/icons/cil-check-alt.png);
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+RadioButton */
+QRadioButton::indicator {
+    border: 3px solid #6272a4;
+	width: 15px;
+	height: 15px;
+	border-radius: 10px;
+    background: #6272a4;
+}
+QRadioButton::indicator:hover {
+    border: 3px solid rgb(119, 136, 187);
+}
+QRadioButton::indicator:checked {
+    background: 3px solid #bd93f9;
+	border: 3px solid #bd93f9;	
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+ComboBox */
+QComboBox{
+	background-color: #6272a4;
+	border-radius: 5px;
+	border: 2px solid #6272a4;
+	padding: 5px;
+	padding-left: 10px;
+    color: #f8f8f2;
+}
+QComboBox:hover{
+	border: 2px solid #7284b9;
+}
+QComboBox::drop-down {
+	subcontrol-origin: padding;
+	subcontrol-position: top right;
+	width: 25px; 
+	border-left-width: 3px;
+	border-left-color: #6272a4;
+	border-left-style: solid;
+	border-top-right-radius: 3px;
+	border-bottom-right-radius: 3px;	
+	background-image: url(:/icons/icons/cil-arrow-bottom.png);
+	background-position: center;
+	background-repeat: no-reperat;
+ }
+QComboBox QAbstractItemView {
+	color: rgb(255, 121, 198);	
+	background-color: #6272a4;
+	padding: 10px;
+	selection-background-color: #6272a4;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Sliders */
+QSlider::groove:horizontal {
+    border-radius: 5px;
+    height: 10px;
+	margin: 0px;
+	background-color: #6272a4;
+}
+QSlider::groove:horizontal:hover {
+	background-color: #6272a4;
+}
+QSlider::handle:horizontal {
+    background-color: rgb(189, 147, 249);
+    border: none;
+    height: 10px;
+    width: 10px;
+    margin: 0px;
+	border-radius: 5px;
+}
+QSlider::handle:horizontal:hover {
+    background-color: rgb(195, 155, 255);
+}
+QSlider::handle:horizontal:pressed {
+    background-color: rgb(255, 121, 198);
+}
+
+QSlider::groove:vertical {
+    border-radius: 5px;
+    width: 10px;
+    margin: 0px;
+	background-color: #6272a4;
+}
+QSlider::groove:vertical:hover {
+	background-color: #6272a4;
+}
+QSlider::handle:vertical {
+    background-color: rgb(189, 147, 249);
+	border: none;
+    height: 10px;
+    width: 10px;
+    margin: 0px;
+	border-radius: 5px;
+}
+QSlider::handle:vertical:hover {
+    background-color: rgb(195, 155, 255);
+}
+QSlider::handle:vertical:pressed {
+    background-color: rgb(255, 121, 198);
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+CommandLinkButton */
+#pagesContainer QCommandLinkButton {	
+	color: rgb(255, 121, 198);
+	border-radius: 5px;
+	padding: 5px;
+    border: 2px solid #ff79c6;
+    color: #ff79c6;
+}
+#pagesContainer QCommandLinkButton:hover {	
+	color: rgb(255, 170, 255);
+	background-color: #6272a4;
+}
+#pagesContainer QCommandLinkButton:pressed {	
+	color: rgb(189, 147, 249);
+	background-color: #586796;
+}
+
+/* /////////////////////////////////////////////////////////////////////////////////////////////////
+Button */
+#pagesContainer QPushButton {
+	border: 2px solid #6272a4;
+	border-radius: 5px;	
+	background-color: #6272a4;
+    color: #f8f8f2;
+}
+#pagesContainer QPushButton:hover {
+	background-color: #7082b6;
+	border: 2px solid #7082b6;
+}
+#pagesContainer QPushButton:pressed {	
+	background-color: #546391;
+	border: 2px solid #ff79c6;
+}
+
+
+</string>
+   </property>
+   <layout class="QHBoxLayout" name="horizontalLayout_7">
+    <item>
+     <widget class="QFrame" name="bgApp">
+      <property name="styleSheet">
+       <string notr="true"/>
+      </property>
+      <property name="frameShape">
+       <enum>QFrame::Shape::NoFrame</enum>
+      </property>
+      <property name="frameShadow">
+       <enum>QFrame::Shadow::Raised</enum>
+      </property>
+      <layout class="QHBoxLayout" name="appLayout">
+       <property name="spacing">
+        <number>0</number>
+       </property>
+       <property name="leftMargin">
+        <number>0</number>
+       </property>
+       <property name="topMargin">
+        <number>0</number>
+       </property>
+       <property name="rightMargin">
+        <number>0</number>
+       </property>
+       <property name="bottomMargin">
+        <number>0</number>
+       </property>
+       <item>
+        <widget class="QFrame" name="leftMenuBg">
+         <property name="minimumSize">
+          <size>
+           <width>60</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>60</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::Shape::NoFrame</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Shadow::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_3">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="topLogoInfo">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="leftMenuFrame">
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalMenuLayout">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QFrame" name="toggleBox">
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>45</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_4">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="toggleButton">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-image: url(:/icons/icons/icon_menu.png);</string>
+                  </property>
+                  <property name="text">
+                   <string>Hide</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item alignment="Qt::AlignmentFlag::AlignTop">
+              <widget class="QFrame" name="topMenu">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_8">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="btn_home">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-image: url(:/icons/icons/cil-home.png);</string>
+                  </property>
+                  <property name="text">
+                   <string>Home</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btn_widgets">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-image: url(:/icons/icons/cil-file.png);</string>
+                  </property>
+                  <property name="text">
+                   <string>Widgets</string>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="btn_new">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">background-image: url(:/icons/icons/cil-chat-bubble.png);</string>
+                  </property>
+                  <property name="text">
+                   <string>New</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item alignment="Qt::AlignmentFlag::AlignBottom">
+              <widget class="QFrame" name="bottomMenu">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_9">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="extraLeftBox">
+         <property name="minimumSize">
+          <size>
+           <width>0</width>
+           <height>0</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>0</width>
+           <height>16777215</height>
+          </size>
+         </property>
+         <property name="frameShape">
+          <enum>QFrame::Shape::NoFrame</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Shadow::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="extraColumLayout">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="extraTopBg">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_5">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <layout class="QGridLayout" name="extraTopLayout">
+               <property name="leftMargin">
+                <number>10</number>
+               </property>
+               <property name="rightMargin">
+                <number>10</number>
+               </property>
+               <property name="horizontalSpacing">
+                <number>10</number>
+               </property>
+               <property name="verticalSpacing">
+                <number>0</number>
+               </property>
+               <item row="0" column="1">
+                <widget class="QLabel" name="extraLabel">
+                 <property name="minimumSize">
+                  <size>
+                   <width>150</width>
+                   <height>0</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QLabel {
+    color: white;
+    font-size: 12pt;
+    font-weight: bold;
+    padding: 0.3em 0.6em;
+}</string>
+                 </property>
+                 <property name="text">
+                  <string>Searching Devices</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QPushButton" name="pushButton_4">
+                 <property name="minimumSize">
+                  <size>
+                   <width>28</width>
+                   <height>28</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>28</height>
+                  </size>
+                 </property>
+                 <property name="styleSheet">
+                  <string notr="true">QPushButton { background-color: rgba(255, 255, 255, 0); border: none;  border-radius: 5px; }
+</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources.qrc">
+                   <normaloff>:/icons/icons/cil-devices.png</normaloff>:/icons/icons/cil-devices.png</iconset>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="2">
+                <widget class="QPushButton" name="extraCloseColumnBtn">
+                 <property name="minimumSize">
+                  <size>
+                   <width>28</width>
+                   <height>28</height>
+                  </size>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>28</width>
+                   <height>28</height>
+                  </size>
+                 </property>
+                 <property name="cursor">
+                  <cursorShape>ArrowCursor</cursorShape>
+                 </property>
+                 <property name="mouseTracking">
+                  <bool>true</bool>
+                 </property>
+                 <property name="toolTip">
+                  <string>Close left box</string>
+                 </property>
+                 <property name="text">
+                  <string/>
+                 </property>
+                 <property name="icon">
+                  <iconset resource="../resources.qrc">
+                   <normaloff>:/icons/icons/icon_close.png</normaloff>:/icons/icons/icon_close.png</iconset>
+                 </property>
+                 <property name="iconSize">
+                  <size>
+                   <width>20</width>
+                   <height>20</height>
+                  </size>
+                 </property>
+                </widget>
+               </item>
+              </layout>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="extraContent">
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_12">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item alignment="Qt::AlignmentFlag::AlignTop">
+              <widget class="QFrame" name="extraTopMenu">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_11">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="btn_adjustments">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="layoutDirection">
+                   <enum>Qt::LayoutDirection::LeftToRight</enum>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">QPushButton {
+	background-image: url(:/icons/icons/cil-find-in-page.png);
+}
+QPushButton :hover {
+    background-color: palette(light);
+    border-radius: 0.2em;
+}
+QPushButton:pressed {
+    background-color: palette(mid);
+}
+</string>
+                  </property>
+                  <property name="text">
+                   <string>Click For Searching</string>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="extraCenter">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QVBoxLayout" name="verticalLayout_10">
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QTableWidget" name="peer">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                    <horstretch>1</horstretch>
+                    <verstretch>1</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="styleSheet">
+                   <string notr="true">/* 表格整体样式 */
+QTableWidget {
+    background-color: transparent;
+    border: none;
+    outline: none;
+    font: inherit;
+	font-size: 12pt;
+    font-weight: bold;
+}
+
+/* 单元格样式 - 增加宽度控制 */
+QTableWidget::item {
+ 
+    background-color: transparent;
+
+}
+</string>
+                  </property>
+                  <property name="alternatingRowColors">
+                   <bool>true</bool>
+                  </property>
+                  <property name="showGrid">
+                   <bool>false</bool>
+                  </property>
+                  <attribute name="horizontalHeaderVisible">
+                   <bool>false</bool>
+                  </attribute>
+                  <attribute name="horizontalHeaderStretchLastSection">
+                   <bool>true</bool>
+                  </attribute>
+                  <attribute name="verticalHeaderVisible">
+                   <bool>false</bool>
+                  </attribute>
+                  <attribute name="verticalHeaderDefaultSectionSize">
+                   <number>60</number>
+                  </attribute>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                   <property name="textAlignment">
+                    <set>AlignCenter</set>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <row>
+                   <property name="text">
+                    <string>新建行</string>
+                   </property>
+                  </row>
+                  <column>
+                   <property name="text">
+                    <string>devices</string>
+                   </property>
+                  </column>
+                  <item row="0" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="1" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="2" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="3" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="4" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="5" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="6" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="7" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="8" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="9" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="10" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="11" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                  <item row="12" column="0">
+                   <property name="text">
+                    <string>128.0.0.1:8080</string>
+                   </property>
+                  </item>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="extraBottom">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+       <item>
+        <widget class="QFrame" name="contentBox">
+         <property name="frameShape">
+          <enum>QFrame::Shape::NoFrame</enum>
+         </property>
+         <property name="frameShadow">
+          <enum>QFrame::Shadow::Raised</enum>
+         </property>
+         <layout class="QVBoxLayout" name="verticalLayout_2">
+          <property name="spacing">
+           <number>0</number>
+          </property>
+          <property name="leftMargin">
+           <number>0</number>
+          </property>
+          <property name="topMargin">
+           <number>0</number>
+          </property>
+          <property name="rightMargin">
+           <number>0</number>
+          </property>
+          <property name="bottomMargin">
+           <number>0</number>
+          </property>
+          <item>
+           <widget class="QFrame" name="contentTopBg">
+            <property name="minimumSize">
+             <size>
+              <width>0</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="maximumSize">
+             <size>
+              <width>16777215</width>
+              <height>50</height>
+             </size>
+            </property>
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <layout class="QHBoxLayout" name="horizontalLayout">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>10</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QFrame" name="leftBox">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Expanding" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_3">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="titleRightInfo">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>45</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string>MN Local File Sharing System</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item alignment="Qt::AlignmentFlag::AlignRight">
+              <widget class="QFrame" name="rightButtons">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>28</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_2">
+                <property name="spacing">
+                 <number>5</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QPushButton" name="minimizeAppBtn">
+                  <property name="minimumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="toolTip">
+                   <string>Minimize</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resources.qrc">
+                    <normaloff>:/icons/icons/icon_minimize.png</normaloff>:/icons/icons/icon_minimize.png</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="maximizeRestoreAppBtn">
+                  <property name="minimumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>10</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                    <stylestrategy>PreferDefault</stylestrategy>
+                   </font>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="toolTip">
+                   <string>Maximize</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resources.qrc">
+                    <normaloff>:/icons/icons/icon_maximize.png</normaloff>:/icons/icons/icon_maximize.png</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QPushButton" name="closeAppBtn">
+                  <property name="minimumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>28</width>
+                    <height>28</height>
+                   </size>
+                  </property>
+                  <property name="cursor">
+                   <cursorShape>PointingHandCursor</cursorShape>
+                  </property>
+                  <property name="toolTip">
+                   <string>Close</string>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="icon">
+                   <iconset resource="../resources.qrc">
+                    <normaloff>:/icons/icons/icon_close.png</normaloff>:/icons/icons/icon_close.png</iconset>
+                  </property>
+                  <property name="iconSize">
+                   <size>
+                    <width>20</width>
+                    <height>20</height>
+                   </size>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+          <item>
+           <widget class="QFrame" name="contentBottom">
+            <property name="frameShape">
+             <enum>QFrame::Shape::NoFrame</enum>
+            </property>
+            <property name="frameShadow">
+             <enum>QFrame::Shadow::Raised</enum>
+            </property>
+            <layout class="QVBoxLayout" name="verticalLayout_6">
+             <property name="spacing">
+              <number>0</number>
+             </property>
+             <property name="leftMargin">
+              <number>0</number>
+             </property>
+             <property name="topMargin">
+              <number>0</number>
+             </property>
+             <property name="rightMargin">
+              <number>0</number>
+             </property>
+             <property name="bottomMargin">
+              <number>0</number>
+             </property>
+             <item>
+              <widget class="QFrame" name="content">
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_4">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QFrame" name="pagesContainer">
+                  <property name="styleSheet">
+                   <string notr="true"/>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_15">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>10</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>10</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>10</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>10</number>
+                   </property>
+                   <item>
+                    <widget class="QStackedWidget" name="stackedWidget">
+                     <property name="styleSheet">
+                      <string notr="true">background: transparent;</string>
+                     </property>
+                     <property name="currentIndex">
+                      <number>2</number>
+                     </property>
+                     <widget class="QWidget" name="home">
+                      <property name="styleSheet">
+                       <string notr="true">background-image: url(:/images/images/MNS.png);
+background-position: center;
+background-repeat: no-repeat;
+</string>
+                      </property>
+                     </widget>
+                     <widget class="QWidget" name="widgets">
+                      <property name="styleSheet">
+                       <string notr="true">b</string>
+                      </property>
+                      <layout class="QVBoxLayout" name="verticalLayout">
+                       <property name="spacing">
+                        <number>10</number>
+                       </property>
+                       <property name="leftMargin">
+                        <number>10</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>10</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>10</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>10</number>
+                       </property>
+                      </layout>
+                     </widget>
+                     <widget class="QWidget" name="FileCheck">
+                      <layout class="QVBoxLayout" name="verticalLayout_20">
+                       <property name="spacing">
+                        <number>0</number>
+                       </property>
+                       <property name="leftMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="topMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="rightMargin">
+                        <number>0</number>
+                       </property>
+                       <property name="bottomMargin">
+                        <number>0</number>
+                       </property>
+                       <item>
+                        <widget class="QFrame" name="gridFrame">
+                         <layout class="QHBoxLayout" name="horizontalLayout_14" stretch="1,1">
+                          <property name="leftMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="topMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="rightMargin">
+                           <number>0</number>
+                          </property>
+                          <property name="bottomMargin">
+                           <number>0</number>
+                          </property>
+                          <item>
+                           <widget class="QFrame" name="horizontalFrame">
+                            <layout class="QVBoxLayout" name="verticalLayout_26">
+                             <item>
+                              <widget class="QFrame" name="LocalFile">
+                               <layout class="QVBoxLayout" name="verticalLayout_27">
+                                <property name="leftMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="topMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="rightMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="bottomMargin">
+                                 <number>0</number>
+                                </property>
+                                <item>
+                                 <widget class="QPushButton" name="pushButton_2">
+                                  <property name="styleSheet">
+                                   <string notr="true">QPushButton {
+    background-color: transparent;
+    color: palette(link);
+    border: none;
+    padding: 0.3em 0.6em;
+    font: inherit;
+	text-align : left;
+	font-size: 12pt;
+    font-weight: bold;
+}
+QPushButton :hover {
+    background-color: palette(light);
+    border-radius: 0.2em;
+}
+QPushButton:pressed {
+    background-color: palette(mid);
+}</string>
+                                  </property>
+                                  <property name="text">
+                                   <string>C:Program Files (x86)Common Files</string>
+                                  </property>
+                                 </widget>
+                                </item>
+                                <item>
+                                 <widget class="DraggableTableWidget" name="tableWidget_2">
+                                  <property name="acceptDrops">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="styleSheet">
+                                   <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                                  </property>
+                                  <property name="dragEnabled">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="dragDropMode">
+                                   <enum>QAbstractItemView::DragDropMode::DragDrop</enum>
+                                  </property>
+                                  <property name="defaultDropAction">
+                                   <enum>Qt::DropAction::TargetMoveAction</enum>
+                                  </property>
+                                  <property name="alternatingRowColors">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="selectionMode">
+                                   <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+                                  </property>
+                                  <property name="selectionBehavior">
+                                   <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                                  </property>
+                                  <attribute name="horizontalHeaderVisible">
+                                   <bool>true</bool>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderCascadingSectionResizes">
+                                   <bool>false</bool>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderMinimumSectionSize">
+                                   <number>35</number>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderDefaultSectionSize">
+                                   <number>160</number>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderHighlightSections">
+                                   <bool>true</bool>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderShowSortIndicator" stdset="0">
+                                   <bool>false</bool>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderStretchLastSection">
+                                   <bool>true</bool>
+                                  </attribute>
+                                  <attribute name="verticalHeaderVisible">
+                                   <bool>false</bool>
+                                  </attribute>
+                                  <attribute name="verticalHeaderCascadingSectionResizes">
+                                   <bool>false</bool>
+                                  </attribute>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <column>
+                                   <property name="text">
+                                    <string>名字</string>
+                                   </property>
+                                  </column>
+                                  <column>
+                                   <property name="text">
+                                    <string>大小</string>
+                                   </property>
+                                  </column>
+                                  <column>
+                                   <property name="text">
+                                    <string>类型</string>
+                                   </property>
+                                  </column>
+                                  <item row="0" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="0" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="0" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="13" column="0">
+                                   <property name="text">
+                                    <string>大小</string>
+                                   </property>
+                                  </item>
+                                  <item row="13" column="2">
+                                   <property name="text">
+                                    <string>类型</string>
+                                   </property>
+                                  </item>
+                                  <item row="14" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="14" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="15" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="15" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="17" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="17" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="18" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                 </widget>
+                                </item>
+                               </layout>
+                              </widget>
+                             </item>
+                             <item>
+                              <widget class="QFrame" name="Sharing">
+                               <layout class="QVBoxLayout" name="FileSharing">
+                                <item>
+                                 <widget class="QPushButton" name="FileSharingLabel">
+                                  <property name="styleSheet">
+                                   <string notr="true">QPushButton {
+    background-color: transparent;
+    color: palette(link);
+    border: none;
+    padding: 0.3em 0.6em;
+    font: inherit;
+	text-align : left;
+	font-size: 12pt;
+    font-weight: bold;
+}
+QPushButton :hover {
+    background-color: palette(light);
+    border-radius: 0.2em;
+}
+QPushButton:pressed {
+    background-color: palette(mid);
+}</string>
+                                  </property>
+                                  <property name="text">
+                                   <string>PushButton</string>
+                                  </property>
+                                 </widget>
+                                </item>
+                                <item>
+                                 <widget class="DraggableTableWidget" name="tableWidget_3">
+                                  <property name="acceptDrops">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="styleSheet">
+                                   <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                                  </property>
+                                  <property name="dragEnabled">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="dragDropMode">
+                                   <enum>QAbstractItemView::DragDropMode::DragDrop</enum>
+                                  </property>
+                                  <property name="alternatingRowColors">
+                                   <bool>true</bool>
+                                  </property>
+                                  <property name="selectionBehavior">
+                                   <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                                  </property>
+                                  <attribute name="horizontalHeaderDefaultSectionSize">
+                                   <number>160</number>
+                                  </attribute>
+                                  <attribute name="horizontalHeaderStretchLastSection">
+                                   <bool>true</bool>
+                                  </attribute>
+                                  <attribute name="verticalHeaderVisible">
+                                   <bool>false</bool>
+                                  </attribute>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <row>
+                                   <property name="text">
+                                    <string>新建行</string>
+                                   </property>
+                                  </row>
+                                  <column>
+                                   <property name="text">
+                                    <string>名字</string>
+                                   </property>
+                                  </column>
+                                  <column>
+                                   <property name="text">
+                                    <string>大小</string>
+                                   </property>
+                                  </column>
+                                  <column>
+                                   <property name="text">
+                                    <string>类型</string>
+                                   </property>
+                                  </column>
+                                  <item row="0" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="0" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="0" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="1" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="2" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="3" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="4" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="5" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="6" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="7" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="8" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="9" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="9" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="10" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="11" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="12" column="0">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="13" column="1">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                  <item row="13" column="2">
+                                   <property name="text">
+                                    <string>demo</string>
+                                   </property>
+                                  </item>
+                                 </widget>
+                                </item>
+                               </layout>
+                              </widget>
+                             </item>
+                            </layout>
+                           </widget>
+                          </item>
+                          <item>
+                           <widget class="QFrame" name="peerDocument">
+                            <layout class="QVBoxLayout" name="verticalLayout_30">
+                             <item>
+                              <widget class="QFrame" name="horizontalFrame_5">
+                               <property name="minimumSize">
+                                <size>
+                                 <width>0</width>
+                                 <height>24</height>
+                                </size>
+                               </property>
+                               <layout class="QVBoxLayout" name="verticalLayout_18" stretch="0,0">
+                                <property name="leftMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="topMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="rightMargin">
+                                 <number>0</number>
+                                </property>
+                                <property name="bottomMargin">
+                                 <number>0</number>
+                                </property>
+                                <item>
+                                 <widget class="QFrame" name="horizontalFrame_6">
+                                  <property name="minimumSize">
+                                   <size>
+                                    <width>0</width>
+                                    <height>23</height>
+                                   </size>
+                                  </property>
+                                  <layout class="QHBoxLayout" name="horizontalLayout_10" stretch="1">
+                                   <property name="leftMargin">
+                                    <number>0</number>
+                                   </property>
+                                   <property name="topMargin">
+                                    <number>0</number>
+                                   </property>
+                                   <property name="rightMargin">
+                                    <number>0</number>
+                                   </property>
+                                   <property name="bottomMargin">
+                                    <number>0</number>
+                                   </property>
+                                   <item>
+                                    <widget class="QLabel" name="HostLabel">
+                                     <property name="styleSheet">
+                                      <string notr="true">QLabel {
+    background-color: transparent;
+    color: palette(link);
+    border: none;
+    padding: 0.1em 0.3em;
+    font: inherit;
+	text-align : center;
+	font-size: 12pt;
+    font-weight: bold;
+}
+</string>
+                                     </property>
+                                     <property name="text">
+                                      <string>Host: 127.0.0.1:8080</string>
+                                     </property>
+                                     <property name="alignment">
+                                      <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+                                     </property>
+                                     <property name="indent">
+                                      <number>0</number>
+                                     </property>
+                                    </widget>
+                                   </item>
+                                  </layout>
+                                 </widget>
+                                </item>
+                                <item>
+                                 <widget class="QPushButton" name="pushButton_3">
+                                  <property name="styleSheet">
+                                   <string notr="true">QPushButton {
+    background-color: transparent;
+    color: palette(link);
+    border: none;
+    padding: 0.3em 0.3em;
+    font: inherit;
+	text-align : left;
+	font-size: 12pt;
+    font-weight: bold;
+}
+QPushButton :hover {
+    background-color: palette(light);
+    border-radius: 0.2em;
+}
+QPushButton:pressed {
+    background-color: palette(mid);
+}</string>
+                                  </property>
+                                  <property name="text">
+                                   <string>C:\Program Files (x86)\Common Files\LenovoAppStoreNotify</string>
+                                  </property>
+                                 </widget>
+                                </item>
+                               </layout>
+                              </widget>
+                             </item>
+                             <item>
+                              <widget class="DraggableTableWidget" name="PeerLabel">
+                               <property name="acceptDrops">
+                                <bool>true</bool>
+                               </property>
+                               <property name="styleSheet">
+                                <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                               </property>
+                               <property name="dragEnabled">
+                                <bool>true</bool>
+                               </property>
+                               <property name="dragDropMode">
+                                <enum>QAbstractItemView::DragDropMode::DragDrop</enum>
+                               </property>
+                               <property name="defaultDropAction">
+                                <enum>Qt::DropAction::LinkAction</enum>
+                               </property>
+                               <property name="alternatingRowColors">
+                                <bool>true</bool>
+                               </property>
+                               <property name="selectionMode">
+                                <enum>QAbstractItemView::SelectionMode::ExtendedSelection</enum>
+                               </property>
+                               <property name="selectionBehavior">
+                                <enum>QAbstractItemView::SelectionBehavior::SelectRows</enum>
+                               </property>
+                               <attribute name="horizontalHeaderDefaultSectionSize">
+                                <number>160</number>
+                               </attribute>
+                               <attribute name="horizontalHeaderStretchLastSection">
+                                <bool>true</bool>
+                               </attribute>
+                               <attribute name="verticalHeaderVisible">
+                                <bool>false</bool>
+                               </attribute>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <row>
+                                <property name="text">
+                                 <string>新建行</string>
+                                </property>
+                               </row>
+                               <column>
+                                <property name="text">
+                                 <string>名字</string>
+                                </property>
+                               </column>
+                               <column>
+                                <property name="text">
+                                 <string>大小</string>
+                                </property>
+                               </column>
+                               <column>
+                                <property name="text">
+                                 <string>类型</string>
+                                </property>
+                               </column>
+                               <item row="0" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="0" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="0" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="1" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="1" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="2" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="3" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="3" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="4" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="5" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="5" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="6" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="13" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="13" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="13" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="14" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="14" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="14" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="15" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="15" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="15" column="2">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="16" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="17" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="18" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="19" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="19" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="20" column="0">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                               <item row="20" column="1">
+                                <property name="text">
+                                 <string>demo</string>
+                                </property>
+                               </item>
+                              </widget>
+                             </item>
+                            </layout>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                     <widget class="QWidget" name="DownloadCheck">
+                      <layout class="QVBoxLayout" name="verticalLayout_33">
+                       <item>
+                        <widget class="QFrame" name="verticalFrame_2">
+                         <layout class="QVBoxLayout" name="verticalLayout_31">
+                          <item>
+                           <widget class="QFrame" name="SendingChangingButtonFrame">
+                            <property name="minimumSize">
+                             <size>
+                              <width>16</width>
+                              <height>48</height>
+                             </size>
+                            </property>
+                            <layout class="QHBoxLayout" name="horizontalLayout_6" stretch="1,1,8">
+                             <item>
+                              <widget class="QPushButton" name="FromLocal">
+                               <property name="maximumSize">
+                                <size>
+                                 <width>16777215</width>
+                                 <height>16777215</height>
+                                </size>
+                               </property>
+                               <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    background-color: white;
+    border: 1px solid #cccccc;
+    border-bottom: none;
+    font-weight: bold;
+    padding: 0.4em 1.2em;  /* 相对单位 */
+    color: #333333;
+    border-top-left-radius: 0.3em;
+    border-top-right-radius: 0.3em;
+}</string>
+                               </property>
+                               <property name="text">
+                                <string>PushButton</string>
+                               </property>
+                              </widget>
+                             </item>
+                             <item>
+                              <widget class="QPushButton" name="ToLocal">
+                               <property name="maximumSize">
+                                <size>
+                                 <width>16777215</width>
+                                 <height>16777215</height>
+                                </size>
+                               </property>
+                               <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    background-color: #f0f0f0;
+    border: 1px solid #cccccc;
+    border-bottom: none;
+    color: #888888;
+    padding: 6px 16px;
+    border-top-left-radius: 5px;
+    border-top-right-radius: 5px;
+}</string>
+                               </property>
+                               <property name="text">
+                                <string>PushButton</string>
+                               </property>
+                              </widget>
+                             </item>
+                             <item>
+                              <widget class="QLabel" name="label">
+                               <property name="text">
+                                <string/>
+                               </property>
+                              </widget>
+                             </item>
+                            </layout>
+                           </widget>
+                          </item>
+                          <item>
+                           <widget class="QFrame" name="verticalFrame_3">
+                            <property name="minimumSize">
+                             <size>
+                              <width>0</width>
+                              <height>39</height>
+                             </size>
+                            </property>
+                            <layout class="QVBoxLayout" name="verticalLayout_17">
+                             <property name="leftMargin">
+                              <number>0</number>
+                             </property>
+                             <property name="topMargin">
+                              <number>0</number>
+                             </property>
+                             <property name="rightMargin">
+                              <number>0</number>
+                             </property>
+                             <property name="bottomMargin">
+                              <number>0</number>
+                             </property>
+                             <item>
+                              <widget class="QStackedWidget" name="sendingPage">
+                               <property name="sizePolicy">
+                                <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                                 <horstretch>0</horstretch>
+                                 <verstretch>0</verstretch>
+                                </sizepolicy>
+                               </property>
+                               <property name="currentIndex">
+                                <number>1</number>
+                               </property>
+                               <widget class="QWidget" name="page">
+                                <layout class="QHBoxLayout" name="horizontalLayout_8">
+                                 <property name="leftMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="topMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="rightMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="bottomMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <item>
+                                  <widget class="HoverableTable" name="FromSendingData">
+                                   <property name="styleSheet">
+                                    <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                                   </property>
+                                   <attribute name="verticalHeaderVisible">
+                                    <bool>false</bool>
+                                   </attribute>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <row>
+                                    <property name="text">
+                                     <string>新建行</string>
+                                    </property>
+                                   </row>
+                                   <column>
+                                    <property name="text">
+                                     <string>文件</string>
+                                    </property>
+                                   </column>
+                                   <column>
+                                    <property name="text">
+                                     <string>大小</string>
+                                    </property>
+                                   </column>
+                                   <column>
+                                    <property name="text">
+                                     <string>状态</string>
+                                    </property>
+                                   </column>
+                                   <item row="0" column="0">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="1" column="2">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="2" column="1">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="2" column="2">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="3" column="0">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="4" column="2">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="5" column="1">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                   <item row="6" column="1">
+                                    <property name="text">
+                                     <string>demo</string>
+                                    </property>
+                                   </item>
+                                  </widget>
+                                 </item>
+                                </layout>
+                               </widget>
+                               <widget class="QWidget" name="page_2">
+                                <layout class="QVBoxLayout" name="verticalLayout_22">
+                                 <property name="leftMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="topMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="rightMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <property name="bottomMargin">
+                                  <number>0</number>
+                                 </property>
+                                 <item>
+                                  <widget class="QFrame" name="verticalFrame_23">
+                                   <layout class="QVBoxLayout" name="verticalLayout_16">
+                                    <property name="leftMargin">
+                                     <number>0</number>
+                                    </property>
+                                    <property name="topMargin">
+                                     <number>0</number>
+                                    </property>
+                                    <property name="rightMargin">
+                                     <number>0</number>
+                                    </property>
+                                    <property name="bottomMargin">
+                                     <number>0</number>
+                                    </property>
+                                    <item>
+                                     <widget class="HoverableTable" name="ToSendingData">
+                                      <property name="styleSheet">
+                                       <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                                      </property>
+                                      <attribute name="verticalHeaderVisible">
+                                       <bool>false</bool>
+                                      </attribute>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <row>
+                                       <property name="text">
+                                        <string>新建行</string>
+                                       </property>
+                                      </row>
+                                      <column>
+                                       <property name="text">
+                                        <string>文件</string>
+                                       </property>
+                                      </column>
+                                      <column>
+                                       <property name="text">
+                                        <string>大小</string>
+                                       </property>
+                                      </column>
+                                      <column>
+                                       <property name="text">
+                                        <string>状态</string>
+                                       </property>
+                                      </column>
+                                      <item row="0" column="0">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="1" column="0">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="2" column="1">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="3" column="1">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="4" column="1">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="5" column="1">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                      <item row="5" column="2">
+                                       <property name="text">
+                                        <string>demo</string>
+                                       </property>
+                                      </item>
+                                     </widget>
+                                    </item>
+                                   </layout>
+                                  </widget>
+                                 </item>
+                                </layout>
+                               </widget>
+                              </widget>
+                             </item>
+                            </layout>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                       <item>
+                        <widget class="QFrame" name="verticalFrame_21">
+                         <property name="minimumSize">
+                          <size>
+                           <width>0</width>
+                           <height>0</height>
+                          </size>
+                         </property>
+                         <layout class="QVBoxLayout" name="verticalLayout_35">
+                          <item>
+                           <widget class="QFrame" name="horizontalFrame_4">
+                            <property name="minimumSize">
+                             <size>
+                              <width>0</width>
+                              <height>28</height>
+                             </size>
+                            </property>
+                            <layout class="QHBoxLayout" name="horizontalLayout_9" stretch="1,9">
+                             <item>
+                              <widget class="QPushButton" name="pushButton">
+                               <property name="styleSheet">
+                                <string notr="true">QPushButton {
+    background-color: white;
+    border: 1px solid #cccccc;
+    border-bottom: none;
+    font-weight: bold;
+    padding: 0.4em 1.2em;  /* 相对单位 */
+    color: #333333;
+    border-top-left-radius: 0.3em;
+    border-top-right-radius: 0.3em;
+}</string>
+                               </property>
+                               <property name="text">
+                                <string>PushButton</string>
+                               </property>
+                              </widget>
+                             </item>
+                             <item>
+                              <widget class="QLabel" name="label_2">
+                               <property name="text">
+                                <string/>
+                               </property>
+                              </widget>
+                             </item>
+                            </layout>
+                           </widget>
+                          </item>
+                          <item>
+                           <widget class="HoverableTable" name="tableWidget_5">
+                            <property name="styleSheet">
+                             <string notr="true">/* 使用系统颜色和相对单位 */
+QTableWidget {
+    background-color: palette(base);
+    gridline-color: palette(mid);
+    border: 1px solid palette(mid);
+    alternate-background-color: palette(alternate-base);
+    font: inherit; /* 继承系统字体设置 */
+	gridline-color: transparent;
+	show-decoration-selected: 1;
+}
+
+/* 表头样式 - 使用系统调色板 */
+QHeaderView::section {
+    background-color: palette(button);
+    border-left: none;
+    padding: 0.2em; /* 使用相对单位 em */
+    font-weight: bold;
+    color: palette(text);
+    min-height: 1.5em; /* 相对高度 */
+	border: none; /* 表头无边框 */
+}
+
+/* 表格内容项样式 */
+QTableWidget::item {
+    padding: 0.1em 0.3em; /* 上下/左右内边距 */
+}
+
+/* 选中项样式 */
+QTableWidget::item:selected {
+    background-color: palette(highlight);
+    color: palette(highlighted-text);
+}
+
+/* 角部按钮 */
+QTableCornerButton::section {
+    background-color: palette(button);
+    border: 1px solid palette(mid);
+    border-top: none;
+    border-left: none;
+}
+</string>
+                            </property>
+                            <attribute name="verticalHeaderVisible">
+                             <bool>false</bool>
+                            </attribute>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <row>
+                             <property name="text">
+                              <string>新建行</string>
+                             </property>
+                            </row>
+                            <column>
+                             <property name="text">
+                              <string>文件</string>
+                             </property>
+                            </column>
+                            <column>
+                             <property name="text">
+                              <string>大小</string>
+                             </property>
+                            </column>
+                            <column>
+                             <property name="text">
+                              <string>接收中</string>
+                             </property>
+                            </column>
+                            <item row="0" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="0" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="0" column="2">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="1" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="1" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="1" column="2">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="2" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="2" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="3" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="3" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="4" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="4" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="5" column="0">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                            <item row="5" column="1">
+                             <property name="text">
+                              <string>demo</string>
+                             </property>
+                            </item>
+                           </widget>
+                          </item>
+                         </layout>
+                        </widget>
+                       </item>
+                      </layout>
+                     </widget>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="extraRightBox">
+                  <property name="minimumSize">
+                   <size>
+                    <width>0</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>0</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
+                  <layout class="QVBoxLayout" name="verticalLayout_7">
+                   <property name="spacing">
+                    <number>0</number>
+                   </property>
+                   <property name="leftMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="topMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="rightMargin">
+                    <number>0</number>
+                   </property>
+                   <property name="bottomMargin">
+                    <number>0</number>
+                   </property>
+                   <item>
+                    <widget class="QFrame" name="themeSettingsTopDetail">
+                     <property name="maximumSize">
+                      <size>
+                       <width>16777215</width>
+                       <height>3</height>
+                      </size>
+                     </property>
+                     <property name="frameShape">
+                      <enum>QFrame::Shape::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Shadow::Raised</enum>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QFrame" name="contentSettings">
+                     <property name="frameShape">
+                      <enum>QFrame::Shape::NoFrame</enum>
+                     </property>
+                     <property name="frameShadow">
+                      <enum>QFrame::Shadow::Raised</enum>
+                     </property>
+                     <layout class="QVBoxLayout" name="verticalLayout_13">
+                      <property name="spacing">
+                       <number>0</number>
+                      </property>
+                      <property name="leftMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="topMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="rightMargin">
+                       <number>0</number>
+                      </property>
+                      <property name="bottomMargin">
+                       <number>0</number>
+                      </property>
+                      <item alignment="Qt::AlignmentFlag::AlignTop">
+                       <widget class="QFrame" name="topMenus">
+                        <property name="frameShape">
+                         <enum>QFrame::Shape::NoFrame</enum>
+                        </property>
+                        <property name="frameShadow">
+                         <enum>QFrame::Shadow::Raised</enum>
+                        </property>
+                        <layout class="QVBoxLayout" name="verticalLayout_14">
+                         <property name="spacing">
+                          <number>0</number>
+                         </property>
+                         <property name="leftMargin">
+                          <number>0</number>
+                         </property>
+                         <property name="topMargin">
+                          <number>0</number>
+                         </property>
+                         <property name="rightMargin">
+                          <number>0</number>
+                         </property>
+                         <property name="bottomMargin">
+                          <number>0</number>
+                         </property>
+                         <item>
+                          <widget class="QPushButton" name="btn_message">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="minimumSize">
+                            <size>
+                             <width>0</width>
+                             <height>45</height>
+                            </size>
+                           </property>
+                           <property name="font">
+                            <font>
+                             <family>Segoe UI</family>
+                             <pointsize>10</pointsize>
+                             <italic>false</italic>
+                             <bold>false</bold>
+                            </font>
+                           </property>
+                           <property name="cursor">
+                            <cursorShape>PointingHandCursor</cursorShape>
+                           </property>
+                           <property name="layoutDirection">
+                            <enum>Qt::LayoutDirection::LeftToRight</enum>
+                           </property>
+                           <property name="styleSheet">
+                            <string notr="true">background-image: url(:/icons/icons/cil-envelope-open.png);</string>
+                           </property>
+                           <property name="text">
+                            <string>Message</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="btn_print">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="minimumSize">
+                            <size>
+                             <width>0</width>
+                             <height>45</height>
+                            </size>
+                           </property>
+                           <property name="font">
+                            <font>
+                             <family>Segoe UI</family>
+                             <pointsize>10</pointsize>
+                             <italic>false</italic>
+                             <bold>false</bold>
+                            </font>
+                           </property>
+                           <property name="cursor">
+                            <cursorShape>PointingHandCursor</cursorShape>
+                           </property>
+                           <property name="layoutDirection">
+                            <enum>Qt::LayoutDirection::LeftToRight</enum>
+                           </property>
+                           <property name="styleSheet">
+                            <string notr="true">background-image: url(:/icons/icons/cil-print.png);</string>
+                           </property>
+                           <property name="text">
+                            <string>Print</string>
+                           </property>
+                          </widget>
+                         </item>
+                         <item>
+                          <widget class="QPushButton" name="btn_logout">
+                           <property name="sizePolicy">
+                            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                             <horstretch>0</horstretch>
+                             <verstretch>0</verstretch>
+                            </sizepolicy>
+                           </property>
+                           <property name="minimumSize">
+                            <size>
+                             <width>0</width>
+                             <height>45</height>
+                            </size>
+                           </property>
+                           <property name="font">
+                            <font>
+                             <family>Segoe UI</family>
+                             <pointsize>10</pointsize>
+                             <italic>false</italic>
+                             <bold>false</bold>
+                            </font>
+                           </property>
+                           <property name="cursor">
+                            <cursorShape>PointingHandCursor</cursorShape>
+                           </property>
+                           <property name="layoutDirection">
+                            <enum>Qt::LayoutDirection::LeftToRight</enum>
+                           </property>
+                           <property name="styleSheet">
+                            <string notr="true">background-image: url(:/icons/icons/cil-account-logout.png);</string>
+                           </property>
+                           <property name="text">
+                            <string>Logout</string>
+                           </property>
+                          </widget>
+                         </item>
+                        </layout>
+                       </widget>
+                      </item>
+                     </layout>
+                    </widget>
+                   </item>
+                  </layout>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+             <item>
+              <widget class="QFrame" name="bottomBar">
+               <property name="minimumSize">
+                <size>
+                 <width>0</width>
+                 <height>22</height>
+                </size>
+               </property>
+               <property name="maximumSize">
+                <size>
+                 <width>16777215</width>
+                 <height>22</height>
+                </size>
+               </property>
+               <property name="frameShape">
+                <enum>QFrame::Shape::NoFrame</enum>
+               </property>
+               <property name="frameShadow">
+                <enum>QFrame::Shadow::Raised</enum>
+               </property>
+               <layout class="QHBoxLayout" name="horizontalLayout_5">
+                <property name="spacing">
+                 <number>0</number>
+                </property>
+                <property name="leftMargin">
+                 <number>0</number>
+                </property>
+                <property name="topMargin">
+                 <number>0</number>
+                </property>
+                <property name="rightMargin">
+                 <number>0</number>
+                </property>
+                <property name="bottomMargin">
+                 <number>0</number>
+                </property>
+                <item>
+                 <widget class="QLabel" name="creditsLabel">
+                  <property name="maximumSize">
+                   <size>
+                    <width>16777215</width>
+                    <height>16</height>
+                   </size>
+                  </property>
+                  <property name="font">
+                   <font>
+                    <family>Segoe UI</family>
+                    <pointsize>-1</pointsize>
+                    <italic>false</italic>
+                    <bold>false</bold>
+                   </font>
+                  </property>
+                  <property name="text">
+                   <string/>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignLeading|Qt::AlignmentFlag::AlignLeft|Qt::AlignmentFlag::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QLabel" name="version">
+                  <property name="text">
+                   <string>v1.0.0</string>
+                  </property>
+                  <property name="alignment">
+                   <set>Qt::AlignmentFlag::AlignRight|Qt::AlignmentFlag::AlignTrailing|Qt::AlignmentFlag::AlignVCenter</set>
+                  </property>
+                 </widget>
+                </item>
+                <item>
+                 <widget class="QFrame" name="frame_size_grip">
+                  <property name="minimumSize">
+                   <size>
+                    <width>20</width>
+                    <height>0</height>
+                   </size>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>20</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
+                  <property name="frameShape">
+                   <enum>QFrame::Shape::NoFrame</enum>
+                  </property>
+                  <property name="frameShadow">
+                   <enum>QFrame::Shadow::Raised</enum>
+                  </property>
+                 </widget>
+                </item>
+               </layout>
+              </widget>
+             </item>
+            </layout>
+           </widget>
+          </item>
+         </layout>
+        </widget>
+       </item>
+      </layout>
+     </widget>
+    </item>
+   </layout>
+  </widget>
+ </widget>
+ <customwidgets>
+  <customwidget>
+   <class>HoverableTable</class>
+   <extends>QTableWidget</extends>
+   <header>hover_table</header>
+  </customwidget>
+  <customwidget>
+   <class>DraggableTableWidget</class>
+   <extends>QTableWidget</extends>
+   <header>draggable_table</header>
+  </customwidget>
+ </customwidgets>
+ <resources>
+  <include location="../resources.qrc"/>
+ </resources>
+ <connections/>
+</ui>
