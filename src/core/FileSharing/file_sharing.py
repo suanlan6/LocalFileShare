@@ -12,6 +12,7 @@ import getpass
 from src.common.fileConf import ShareType, FileInfo
 from src.core.FileSharing.SharingUtils import (
     _is_hidden_or_system_file,
+    get_file_type,
     is_valid_subpath,
     _get_windows_drives,
 )
@@ -19,7 +20,7 @@ from src.utils.logger import _logger
 
 
 class FileSharing:
-    def __init__(self, host: str, config_path: str = "shares.json"):
+    def __init__(self, host: str, config_path: str = "conf/shares.json"):
         """
         初始化文件共享系统
         :param device_name: 本机设备名称
@@ -32,6 +33,10 @@ class FileSharing:
         self.root_path = self._get_system_root()  # 初始化根路径
         self.current_path = self.root_path  # 当前浏览路径
 
+        dir_path = os.path.dirname(config_path)
+
+        if dir_path and not os.path.exists(dir_path):
+            os.makedirs(dir_path)
         self.config_path = config_path
         self.shared_dirs: Dict[str, FileInfo] = {}  # {共享路径: 元信息}
         self.peer_shares: Dict[str, dict] = {}  # {设备名: 共享信息(IP、端口、路径)}
@@ -73,8 +78,12 @@ class FileSharing:
             return _get_windows_drives()
         if not self._is_valid_path(path) or not os.path.isdir(path):
             return []
-        if ((self.os_type != "Windows" and path.count("/") <= 1) or
-                self.os_type == "Windows" and "\\" not in path and not path.endswith(":\\")):
+        if (
+            (self.os_type != "Windows" and path.count("/") <= 1)
+            or self.os_type == "Windows"
+            and "\\" not in path
+            and not path.endswith(":\\")
+        ):
             return self.list_local_dir("/")
 
         items = []
@@ -84,9 +93,13 @@ class FileSharing:
             self.os_type != "Windows"
             or (self.os_type == "Windows" and "\\" in path and not path.endswith(":\\"))
         ):
-            if ((self.os_type != "Windows" and path.count("/") <= 1) or
-                    self.os_type == "Windows" and "\\" not in path and not path.endswith(":\\")):
-                parent = '/'
+            if (
+                (self.os_type != "Windows" and path.count("/") <= 1)
+                or self.os_type == "Windows"
+                and "\\" not in path
+                and not path.endswith(":\\")
+            ):
+                parent = "/"
             else:
                 parent = os.path.dirname(path)
             # items.append({"name": "..", "path": parent, "type": ShareType.FOLDER})
@@ -106,14 +119,7 @@ class FileSharing:
                     continue
                 is_dir = entry.is_dir()
                 size = entry.stat().st_size if entry.is_file() else 0
-                if is_dir:
-                    file_type = ShareType.FOLDER
-                else:
-                    # 检查图片扩展名
-                    ext = os.path.splitext(entry.name)[1].lower()
-                    file_type = (
-                        ShareType.PICTURE if ext in IMAGE_EXTENSIONS else ShareType.FILE
-                    )
+                file_type = get_file_type(entry.path)
                 # items.append(
                 #     {
                 #         "name": entry.name,
@@ -148,11 +154,12 @@ class FileSharing:
         ):
             raise ValueError("不能共享特殊系统路径")
 
-        if not os.path.isdir(target_path):
-            raise ValueError(f"目录不存在: {target_path}")
+        if not os.path.isdir(target_path) and not os.path.isfile(target_path):
+            raise ValueError(f"目录或文件不存在: {target_path}")
 
         abs_path = os.path.abspath(target_path)
         name = os.path.basename(abs_path)
+        file_type = get_file_type(abs_path)  # 确保路径有效
         if self.os_type == "Windows" and abs_path.endswith(":\\"):
             name = f"{abs_path[0]}:"
         self.shared_dirs[abs_path] = FileInfo(
@@ -160,7 +167,7 @@ class FileSharing:
             size=0,  # 共享目录不需要大小
             path=abs_path,
             host=f"{self.host}",
-            file_type=ShareType.FOLDER,
+            file_type=file_type,
         )
         self.save_config()
         _logger.info(f"已共享目录: {name} ({abs_path})")

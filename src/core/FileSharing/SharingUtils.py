@@ -66,3 +66,16 @@ def _get_windows_drives() -> List[FileInfo]:
                 )
             )
     return drives
+
+
+def get_file_type(file_path: str) -> ShareType:
+    """根据文件扩展名返回文件类型"""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]:
+        return ShareType.PICTURE
+    elif os.path.isdir(file_path):
+        return ShareType.FOLDER
+    elif os.path.isfile(file_path):
+        return ShareType.FILE
+    else:
+        return ShareType.OTHER
