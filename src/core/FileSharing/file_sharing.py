@@ -73,6 +73,9 @@ class FileSharing:
             return _get_windows_drives()
         if not self._is_valid_path(path) or not os.path.isdir(path):
             return []
+        if ((self.os_type != "Windows" and path.count("/") <= 1) or
+                self.os_type == "Windows" and "\\" not in path and not path.endswith(":\\")):
+            return self.list_local_dir("/")
 
         items = []
         IMAGE_EXTENSIONS = {".jpg", ".jpeg", ".png", ".gif", ".bmp", ".tiff", ".webp"}
@@ -80,21 +83,13 @@ class FileSharing:
         if path != self.root_path and (
             self.os_type != "Windows"
             or (self.os_type == "Windows" and "\\" in path and not path.endswith(":\\"))
-            or (self.os_type == "Windows" and "//" in path and not path.endswith("://"))
         ):
-            parent = os.path.dirname(path)
+            if ((self.os_type != "Windows" and path.count("/") <= 1) or
+                    self.os_type == "Windows" and "\\" not in path and not path.endswith(":\\")):
+                parent = '/'
+            else:
+                parent = os.path.dirname(path)
             # items.append({"name": "..", "path": parent, "type": ShareType.FOLDER})
-            items.append(
-                FileInfo(
-                    name="..",
-                    path=parent,
-                    size=0,  # 上级目录没有大小
-                    host=f"{self.host}",
-                    file_type=ShareType.FOLDER,
-                )
-            )
-        if self.os_type == "Windows" and (path.endswith(":\\") or path.endswith("://")):
-            parent = self.root_path
             items.append(
                 FileInfo(
                     name="..",

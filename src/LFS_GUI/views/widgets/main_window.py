@@ -179,12 +179,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.configure_sr_table(self.sending)
         self.configure_sr_table(self.receiver)
 
+
+        # localFile初始化
+        def handle_click(row):
+            info = self.localFile_list[row]
+            if info.type == ShareType.FOLDER:
+                # 传递给 controller 再次获取其路径下的内容
+                self.localFile_initialize(parent_path=info.path)
+        self.localFile.cellDoubleClicked.connect(handle_click)
+        self.localFile_initialize()
         self.pushButton_2.setText("/")
         self.pushButton_2.clicked.connect(
             lambda: self.localFile_initialize(get_parent_path(self.pushButton_2.text()))
         )
-        self.localFile_initialize()
 
+        # fileSharing初始化
+        def handle_click(row):
+            info = self.fileSharing_list[row]
+            if info.type == ShareType.FOLDER:
+                # 传递给 controller 再次获取其路径下的内容
+                self.fileSharing_initialize(parent_path=info.path)
+        self.fileSharing.cellDoubleClicked.connect(handle_click)
         self.FileSharingLabel.setText("/")
         self.FileSharingLabel.clicked.connect(
             lambda: self.fileSharing_initialize(
@@ -193,6 +208,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
         self.fileSharing_initialize()
 
+        # peerData初始化
+        def handle_click(row):
+            info = self.peerData_list[row]
+            if info.type == ShareType.FOLDER:
+                self.peerData_initialize(parent_path=info.path)
+        self.peerData.cellDoubleClicked.connect(handle_click)
         self.pushButton_3.setText("/")
         self.HostLabel.setText(f"Host: {self.peerHost}")
         self.pushButton_3.clicked.connect(
@@ -331,12 +352,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         parent_path = parent_path if parent_path is not None else "/"
         self.pushButton_2.setText(parent_path)
 
-        def handle_click(row):
-            # TODO(BAI RONG): FIX THE DOUBLE CLICK ISSUE
-            info = self.localFile_list[row]
-            if info.type == ShareType.FOLDER:
-                # 传递给 controller 再次获取其路径下的内容
-                self.localFile_initialize(parent_path=info.path)
+
 
         self.localFile.clearContents()
         self.localFile.setRowCount(0)
@@ -352,18 +368,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.localFile.setItem(row, 1, size_item)
             self.localFile.setItem(row, 2, type_item)
 
-        # 添加点击事件
-        self.localFile.cellDoubleClicked.connect(handle_click)
+
 
     def fileSharing_initialize(self, parent_path: str = None):
         parent_path = parent_path if parent_path is not None else "/"
         self.FileSharingLabel.setText(parent_path)
 
-        def handle_click(row):
-            info = self.fileSharing_list[row]
-            if info.type == ShareType.FOLDER:
-                # 传递给 controller 再次获取其路径下的内容
-                self.fileSharing_initialize(parent_path=info.path)
+
 
         self.fileSharing.clearContents()
         self.fileSharing.setRowCount(0)
@@ -377,24 +388,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fileSharing.setItem(row, 1, size_item)
             self.fileSharing.setItem(row, 2, type_item)
         # 添加点击事件
-        self.fileSharing.cellDoubleClicked.connect(handle_click)
+
 
     def peerData_initialize(self, parent_path: str = None):
         parent_path = parent_path if parent_path is not None else "/"
         self.pushButton_3.setText(parent_path)
-
-        def handle_click(row):
-            info = self.peerData_list[row]
-            if info.type == ShareType.FOLDER:
-                self.peerData_initialize(parent_path=info.path)
-
         self.peerData.clearContents()
         self.peerData.setRowCount(0)
-
         self.peerData_list = self.controller.get_peer_file_info(
             self.peerHost, parent_path
         )
-
         self.peerData.setRowCount(len(self.peerData_list))
         for row, info in enumerate(self.peerData_list):
             name_item = QTableWidgetItem(info.name)
@@ -403,8 +406,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.peerData.setItem(row, 0, name_item)
             self.peerData.setItem(row, 1, size_item)
             self.peerData.setItem(row, 2, type_item)
-        # 添加点击事件
-        self.peerData.cellDoubleClicked.connect(handle_click)
 
     def sending_initialize(self, table):
         def adjust_column_widths(table):
@@ -877,15 +878,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 ####################################utils####################################################
 def get_parent_path(s: str) -> str:
     if s == "/":
-        path = "/"
-    if "/" in s:
-        path = s.rsplit("/", 1)[0]
-    elif "\\" in s:
-        path = s.rsplit("\\", 1)[0]
-    else:
-        path = "/"
+        return "/"
 
-    return path
+    if "/" in s:
+        return "/" if s.count("/") <= 2 else s.rsplit("/", 1)[0]
+
+    if "\\" in s:
+        if s.count("\\") <= 1 and s.endswith("\\"):
+            return "/"
+        path = s.rsplit("\\", 1)[0]
+        return path + "\\" if "\\" not in path else path
+
+    return "/"
+
 
 
 class BackendEventSignalBridge(QObject):
