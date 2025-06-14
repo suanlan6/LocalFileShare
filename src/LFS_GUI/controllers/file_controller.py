@@ -8,6 +8,7 @@ from src.common.device import Device
 from src.core.transfer.transfer_config import TransferStatus
 from src.core.share_manager import ShareManager
 from src.utils.system_utils import get_device_name, get_local_ip
+from src.utils.logger import _logger
 
 
 class FileController:
@@ -180,3 +181,11 @@ class FileController:
         """
         print(f"set_sharing_file {file_info}")
         self.share_manager.set_shared_directory(file_info.path)
+
+    def delete_sharing_file(self, file_info: FileInfo):
+        """
+        删除文件共享
+        :param file_info: 文件信息
+        """
+        # _logger.info(f"delete_sharing_file {file_info}")
+        self.share_manager.cancel_shared_directory(file_info.path)

@@ -14,7 +14,7 @@ from PySide6.QtCore import (
     Signal,
     QThread,
 )
-from PySide6.QtGui import QIcon
+from PySide6.QtGui import QIcon, QAction
 from PySide6.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -25,6 +25,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QDialog,
+    QMenu,
 )
 
 from src.LFS_GUI.config.config import LightConfig, DarkConfig
@@ -77,25 +78,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.initialize_view()
         self.setup_connections()
 
-    def closeEvent(self, event):
-        """窗口关闭时执行清理逻辑"""
-        _logger.info("关闭窗口，正在清理资源...")
+    # def closeEvent(self, event):
+    #     """窗口关闭时执行清理逻辑"""
+    #     _logger.info("关闭窗口，正在清理资源...")
 
-        # # 若 FileController 有 stop_server 方法，也可以调用
-        # try:
-        #     self.share_dispatcher.dispatch(self.controller.stop_server)
-        # except Exception as e:
-        #     _logger.error(f"关闭服务时出错: {e}")
+    #     # # 若 FileController 有 stop_server 方法，也可以调用
+    #     # try:
+    #     #     self.share_dispatcher.dispatch(self.controller.stop_server)
+    #     # except Exception as e:
+    #     #     _logger.error(f"关闭服务时出错: {e}")
 
-        # 停止 dispatcher 的事件循环（标记退出）
-        self.share_dispatcher.stop()
+    #     # 停止 dispatcher 的事件循环（标记退出）
+    #     self.share_dispatcher.stop()
 
-        # 停止 QThread
-        self.share_thread.quit()
-        self.share_thread.wait()
+    #     # 停止 QThread
+    #     self.share_thread.quit()
+    #     self.share_thread.wait()
 
-        # 最后调用父类的 closeEvent，完成关闭
-        super().closeEvent(event)
+    #     # 最后调用父类的 closeEvent，完成关闭
+    #     super().closeEvent(event)
 
     def init_share_dispatcher(self):
         self.share_thread = QThread()
@@ -234,6 +235,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 self.fileSharing_initialize(parent_path=info.path)
 
         self.fileSharing.cellDoubleClicked.connect(handle_click)
+        self.fileSharing.setContextMenuPolicy(Qt.CustomContextMenu)
+        self.fileSharing.customContextMenuRequested.connect(
+            lambda pos: self.open_menu(pos, self.fileSharing)
+        )
         self.FileSharingLabel.setText("/")
         self.FileSharingLabel.clicked.connect(
             lambda: self.fileSharing_initialize(
@@ -896,6 +901,64 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.set_ReceivingData()
         self.controller.delete_task(data)
         _logger.info(f"{name} 用户删除了第 {row} 行")
+
+    def open_menu(self, pos: QPoint, table):
+        # 获取点击位置的单元格
+        item = table.itemAt(pos)
+        if item is None:
+            return
+
+        row = item.row()
+        col = item.column()
+        print(f"右键点击了: 行 {row}, 列 {col}")
+
+        # 创建菜单
+        menu = QMenu(self)
+        menu.setStyleSheet(
+            """
+        QMenu {
+            background-color: white;
+            border: 1px solid #ccc;
+            border-radius: 6px;
+            padding: 4px 0px;
+        }
+
+        QMenu::item {
+            background-color: transparent;
+            padding: 8px 20px;
+            margin: 0px;
+            border: none;
+            color: #333;
+            font-size: 14px;
+            min-width: 160px;
+        }
+
+        /* hover 效果：填满整行 */
+        QMenu::item:selected {
+            background-color: #e6f0ff;
+            color: #0078d7;
+        }
+
+        /* 分割线样式 */
+        QMenu::separator {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 6px 10px;
+        }
+        """
+        )
+
+        action_delete = QAction("删除共享", self)
+        action_delete.triggered.connect(lambda: self.delete_row(row, table))
+        menu.addAction(action_delete)
+
+        # 显示菜单（全局坐标）
+        menu.exec(table.viewport().mapToGlobal(pos))
+
+    def delete_row(self, row, table):
+        _logger.info(f"删除行: {row}")
+        self.controller.delete_sharing_file(self.fileSharing_list[row])
+        self.fileSharing_initialize()
 
 
 ####################################utils####################################################
