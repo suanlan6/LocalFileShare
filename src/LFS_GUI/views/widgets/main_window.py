@@ -1,24 +1,49 @@
 import os
 import sys
 from random import random
-from typing import (Tuple, Union)
+from typing import Tuple, Union, Callable
 
-from PySide6.QtCore import (Qt, QTimer, QEvent, QPoint, QPropertyAnimation, QParallelAnimationGroup, QObject, Signal)
+from PySide6.QtCore import (
+    Qt,
+    QTimer,
+    QEvent,
+    QPoint,
+    QPropertyAnimation,
+    QParallelAnimationGroup,
+    QObject,
+    Signal,
+    QThread,
+)
 from PySide6.QtGui import QIcon
-from PySide6.QtWidgets import (QMainWindow, QApplication, QSizeGrip, QPushButton, QHeaderView, QAbstractItemView,
-                               QTableWidget, QTableWidgetItem, QDialog)
+from PySide6.QtWidgets import (
+    QMainWindow,
+    QApplication,
+    QSizeGrip,
+    QPushButton,
+    QHeaderView,
+    QAbstractItemView,
+    QTableWidget,
+    QTableWidgetItem,
+    QDialog,
+)
 
 from src.LFS_GUI.config.config import LightConfig, DarkConfig
 
 from src.LFS_GUI.controllers.file_controller import FileController
 
-from src.LFS_GUI.views.ui_components.animations import create_width_animation, create_animation_group
+from src.LFS_GUI.views.ui_components.animations import (
+    create_width_animation,
+    create_animation_group,
+)
 from src.LFS_GUI.views.ui_components.ui_setup import apply_shadow_effect
-from src.LFS_GUI.views.ui_designs.ConnectConfirmationDialog import ConnectConfirmationDialog
+from src.LFS_GUI.views.ui_designs.ConnectConfirmationDialog import (
+    ConnectConfirmationDialog,
+)
 from src.LFS_GUI.views.ui_designs.ProgressBarWidget import ProgressBarWidget
 from src.LFS_GUI.views.ui_designs.VerificationDialog import VerificationDialog
 from src.LFS_GUI.views.ui_designs import Ui_MainWindow
 from src.LFS_GUI.views.widgets.custom_grips import CustomGrip
+from src.LFS_GUI.utils.async_worker import AsyncWorker
 from src.common.fileConf import ShareType, FileInfo
 
 
@@ -41,13 +66,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.move_position: QPoint = QPoint(0, 0)
         #
         self.dark_theme: bool = bool(0)
-        self.current_selected_btn: str = 'btn_home'
+        self.current_selected_btn: str = "btn_home"
         self.config = LightConfig
         #
         self.initialize_view()
         self.setup_connections()
-
-
 
     # noinspection PyTypeChecker
     def set_theme(self):
@@ -64,7 +87,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.config = LightConfig if self.dark_theme else DarkConfig
         self.dark_theme = not self.dark_theme
         # 设置全局的新样式，新主题
-        with open(self.config.QSS_FILE, mode='r', encoding='utf-8') as f:
+        with open(self.config.QSS_FILE, mode="r", encoding="utf-8") as f:
             self.styleSheet.setStyleSheet(f.read())
         # 设置部件的样式
         for widget_name, style in self.config.MANUAL_STYLES.items():
@@ -112,7 +135,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.btn_widgets.clicked.connect(self.switch_page)
         self.btn_new.clicked.connect(self.linkage_animation)
 
-
         # 最大最小化点击事件
         self.minimizeAppBtn.clicked.connect(self.showMinimized)
         self.maximizeRestoreAppBtn.clicked.connect(self.maximize_restore)
@@ -126,7 +148,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.setWindowTitle(title)
         self.titleRightInfo.setText(description)
 
-
     def initialize_backend(self):
         def show_connect_dialog(ip: str):
             dialog = ConnectConfirmationDialog(ip, self)
@@ -137,8 +158,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.backendConnect = BackendEventSignalBridge()
         self.backendConnect.request_received.connect(show_connect_dialog)
-
-
 
     def initialize_table(self):
 
@@ -160,23 +179,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.configure_sr_table(self.sending)
         self.configure_sr_table(self.receiver)
 
-
         self.pushButton_2.setText("/")
-        self.pushButton_2.clicked.connect(lambda: self.localFile_initialize(
-            get_parent_path(self.pushButton_2.text())))
+        self.pushButton_2.clicked.connect(
+            lambda: self.localFile_initialize(get_parent_path(self.pushButton_2.text()))
+        )
         self.localFile_initialize()
 
-
         self.FileSharingLabel.setText("/")
-        self.FileSharingLabel.clicked.connect(lambda: self.fileSharing_initialize(
-            get_parent_path(self.FileSharingLabel.text())))
+        self.FileSharingLabel.clicked.connect(
+            lambda: self.fileSharing_initialize(
+                get_parent_path(self.FileSharingLabel.text())
+            )
+        )
         self.fileSharing_initialize()
-
 
         self.pushButton_3.setText("/")
         self.HostLabel.setText(f"Host: {self.peerHost}")
-        self.pushButton_3.clicked.connect(lambda: self.peerData_initialize(
-            get_parent_path(self.pushButton_3.text())))
+        self.pushButton_3.clicked.connect(
+            lambda: self.peerData_initialize(get_parent_path(self.pushButton_3.text()))
+        )
         self.peerData_initialize()
 
         tables = [
@@ -219,26 +240,46 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.host_list = []
         self.confirm_list = []
 
-    def configure_table(self,table:QTableWidget):
+    def configure_table(self, table: QTableWidget):
         def handle_row_dropped(source_name, target_name, data):
             print(f"[MainWindow] 拖拽数据: {data} 从 {source_name} ➜ {target_name}")
-            if target_name == 'peerDocument':
-                if source_name == 'LocalFile':
+            if target_name == "peerDocument":
+                if source_name == "LocalFile":
                     path = self.pushButton_3.text()
                     device = self.peerHost
-                    self.controller.sending(device,path,self.localFile_list[data])
-                elif source_name == 'Sharing':
+                    # self.controller.sending(device, path, self.localFile_list[data])
+                    self.run_async_in_qthread(
+                        self.controller.sending, device, path, self.localFile_list[data]
+                    )
+                elif source_name == "Sharing":
                     path = self.pushButton_3.text()
                     device = self.peerHost
-                    self.controller.sending(device,path,self.fileSharing_list[data])
-            elif target_name == 'LocalFile':
+                    # self.controller.sending(device, path, self.fileSharing_list[data])
+                    self.run_async_in_qthread(
+                        self.controller.sending,
+                        device,
+                        path,
+                        self.fileSharing_list[data],
+                    )
+            elif target_name == "LocalFile":
                 path = self.pushButton_2.text()
                 device = self.peerHost
-                self.controller.receiving(device, path, self.peerData_list[data])
-            elif target_name == 'Sharing':
+                # self.controller.receiving(device, path, self.peerData_list[data])
+                self.run_async_in_qthread(
+                    self.controller.receiving, device, path, self.peerData_list[data]
+                )
+            elif target_name == "Sharing":
+                if source_name == "LocalFile":
+                    self.controller.set_sharing_file(self.localFile_list[data])
+                    self.fileSharing_initialize
+                    return
                 path = self.FileSharingLabel.text()
                 device = self.peerHost
-                self.controller.receiving(device, path, self.peerData_list[data])
+                # self.controller.receiving(device, path, self.peerData_list[data])
+                self.run_async_in_qthread(
+                    self.controller.receiving, device, path, self.peerData_list[data]
+                )
+
         table.rowDropped.connect(handle_row_dropped)
         header = table.horizontalHeader()
         header.setSectionResizeMode(QHeaderView.Stretch)
@@ -263,10 +304,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 如果你想让一次只选一个单元格：
         table.setSelectionMode(QAbstractItemView.SingleSelection)
 
-
         table.installEventFilter(self)
 
-    def configure_sr_table(self,table):
+    def configure_sr_table(self, table):
         header = table.horizontalHeader()
         header.setSectionsMovable(False)
         header.setSectionsClickable(False)
@@ -285,14 +325,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 如果你想让一次只选一个单元格：
         table.setSelectionMode(QAbstractItemView.SingleSelection)
 
-    def localFile_initialize(self,parent_path: str = None):
-        parent_path = parent_path if parent_path is not None else '/'
+    def localFile_initialize(self, parent_path: str = None):
+        from src.utils.logger import _logger
+
+        parent_path = parent_path if parent_path is not None else "/"
         self.pushButton_2.setText(parent_path)
+
         def handle_click(row):
+            # TODO(BAI RONG): FIX THE DOUBLE CLICK ISSUE
             info = self.localFile_list[row]
             if info.type == ShareType.FOLDER:
                 # 传递给 controller 再次获取其路径下的内容
                 self.localFile_initialize(parent_path=info.path)
+
         self.localFile.clearContents()
         self.localFile.setRowCount(0)
         self.localFile_list = self.controller.get_local_file_info(parent_path)
@@ -308,17 +353,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.localFile.setItem(row, 2, type_item)
 
         # 添加点击事件
-        self.localFile.cellClicked.connect(handle_click)
+        self.localFile.cellDoubleClicked.connect(handle_click)
 
-
-    def fileSharing_initialize(self,parent_path: str = None):
-        parent_path = parent_path if parent_path is not None else '/'
+    def fileSharing_initialize(self, parent_path: str = None):
+        parent_path = parent_path if parent_path is not None else "/"
         self.FileSharingLabel.setText(parent_path)
+
         def handle_click(row):
             info = self.fileSharing_list[row]
             if info.type == ShareType.FOLDER:
                 # 传递给 controller 再次获取其路径下的内容
                 self.fileSharing_initialize(parent_path=info.path)
+
         self.fileSharing.clearContents()
         self.fileSharing.setRowCount(0)
         self.fileSharing_list = self.controller.get_sharing_file_info(parent_path)
@@ -331,20 +377,23 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fileSharing.setItem(row, 1, size_item)
             self.fileSharing.setItem(row, 2, type_item)
         # 添加点击事件
-        self.fileSharing.cellClicked.connect(handle_click)
+        self.fileSharing.cellDoubleClicked.connect(handle_click)
 
-
-    def peerData_initialize(self,parent_path: str = None):
-        parent_path = parent_path if parent_path is not None else '/'
+    def peerData_initialize(self, parent_path: str = None):
+        parent_path = parent_path if parent_path is not None else "/"
         self.pushButton_3.setText(parent_path)
+
         def handle_click(row):
             info = self.peerData_list[row]
             if info.type == ShareType.FOLDER:
                 self.peerData_initialize(parent_path=info.path)
+
         self.peerData.clearContents()
         self.peerData.setRowCount(0)
 
-        self.peerData_list = self.controller.get_peer_file_info(self.peerHost,parent_path)
+        self.peerData_list = self.controller.get_peer_file_info(
+            self.peerHost, parent_path
+        )
 
         self.peerData.setRowCount(len(self.peerData_list))
         for row, info in enumerate(self.peerData_list):
@@ -355,9 +404,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.peerData.setItem(row, 1, size_item)
             self.peerData.setItem(row, 2, type_item)
         # 添加点击事件
-        self.peerData.cellClicked.connect(handle_click)
+        self.peerData.cellDoubleClicked.connect(handle_click)
 
-    def sending_initialize(self,table):
+    def sending_initialize(self, table):
         def adjust_column_widths(table):
             total_ratio = 7 + 1 + 2
             width = table.viewport().width()  # 表格视口宽度，不包括滚动条等
@@ -369,6 +418,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             table.setColumnWidth(0, col0_width)
             table.setColumnWidth(1, col1_width)
             table.setColumnWidth(2, col2_width)
+
         table.setRowCount(0)
         header = table.horizontalHeader()
         # 设置列宽策略
@@ -384,12 +434,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         table.setSelectionMode(QTableWidget.NoSelection)
 
         # 重载 resizeEvent 以动态调整列宽
-        table.resizeEvent = lambda event: (adjust_column_widths(table), QTableWidget.resizeEvent(table, event))
-
-
-
-
-
+        table.resizeEvent = lambda event: (
+            adjust_column_widths(table),
+            QTableWidget.resizeEvent(table, event),
+        )
 
     # 获取客户端发起的文件传输
     def set_fromSendingData(self):
@@ -402,12 +450,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for device_id in fromSendingData:
             file_dict = fromSendingData[device_id]
             for file_id, file_info in file_dict.items():
-                file_info['device_id'] = device_id
-                file_info['file_id'] = file_id
+                file_info["device_id"] = device_id
+                file_info["file_id"] = file_id
                 self.FromSendingData_list.append(file_info)
                 filename = file_info.get("filename", "")
                 size = file_info.get("size", "")
-                progress_value = file_info.get("progress_value", 0.0)
+                progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
                 item = QTableWidgetItem(size)
@@ -418,6 +466,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 table.setCellWidget(row_idx, 2, progress_widget)
                 row_idx += 1
         table.data = self.FromSendingData_list
+
     # 获取客户端接收的文件传输
     def set_toSendingData(self):
         table = self.ToSendingData
@@ -429,12 +478,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for device_id in toSendingData_list:
             file_dict = toSendingData_list[device_id]
             for file_id, file_info in file_dict.items():
-                file_info['device_id'] = device_id
-                file_info['file_id'] = file_id
+                file_info["device_id"] = device_id
+                file_info["file_id"] = file_id
                 self.ToSendingData_list.append(file_info)
                 filename = file_info.get("filename", "")
                 size = file_info.get("size", "")
-                progress_value = file_info.get("progress_value", 0.0)
+                progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
                 item = QTableWidgetItem(size)
@@ -445,6 +494,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 table.setCellWidget(row_idx, 2, progress_widget)
                 row_idx += 1
         table.data = self.ToSendingData_list
+
     def set_ReceivingData(self):
         table = self.tableWidget_5
         receivingData_list = self.controller.get_toSendingData_list_data()
@@ -455,12 +505,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for device_id in receivingData_list:
             file_dict = receivingData_list[device_id]
             for file_id, file_info in file_dict.items():
-                file_info['device_id'] = device_id
-                file_info['file_id'] = file_id
+                file_info["device_id"] = device_id
+                file_info["file_id"] = file_id
                 self.ReceivingData_list.append(file_info)
                 filename = file_info.get("filename", "")
                 size = file_info.get("size", "")
-                progress_value = file_info.get("progress_value", 0.0)
+                progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
                 item = QTableWidgetItem(size)
@@ -471,6 +521,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 table.setCellWidget(row_idx, 2, progress_widget)
                 row_idx += 1
         table.data = self.ReceivingData_list
+
     def peer_initialize(self):
         self.peer.setRowCount(0)
         button_style = """
@@ -495,17 +546,21 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         def create_handler(ip_address):
             def on_button_clicked():
+                self.controller.sendCode(ip_address)
+                # 发起请求
+
                 dialog = VerificationDialog(ip_address, self)
                 if dialog.exec() == QDialog.Accepted:
                     code = dialog.get_code()
                     print(f"用户输入验证码：{code}，目标IP：{ip_address}")
                     if self.controller.sendCode(code):
                         self.peerHost = ip_address
-                        self.HostLabel.setText(f'Host: {self.peerHost}')
+                        self.HostLabel.setText(f"Host: {self.peerHost}")
                         self.peerData_initialize()
                 else:
                     print("用户取消了操作")
                     self.backendConnect.request_received.emit(ip_address)
+
             return on_button_clicked
 
         for row, ip in enumerate(self.host_list):
@@ -518,7 +573,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def initialize_window_resizing(self):
         """可调整窗口尺寸"""
         self.sizegrip = QSizeGrip(self.frame_size_grip)
-        self.sizegrip.setStyleSheet("width: 20px; height: 20px; margin 0px; padding: 0px;")
+        self.sizegrip.setStyleSheet(
+            "width: 20px; height: 20px; margin 0px; padding: 0px;"
+        )
 
     def initialize_border_effects(self):
         """初始化自定义边框并为窗口应用阴影效果。"""
@@ -535,9 +592,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """最大化窗口和还原"""
         if not self.is_maximum_size:
             self.showMaximized()
-            self.verticalLayout_32.setContentsMargins(0, 0, 0, 0)
+            self.verticalLayout_12.setContentsMargins(0, 0, 0, 0)
             self.maximizeRestoreAppBtn.setToolTip("Restore")
-            self.maximizeRestoreAppBtn.setIcon(QIcon(u":/icons/icons/icon_restore.png"))
+            self.maximizeRestoreAppBtn.setIcon(QIcon(":/icons/icons/icon_restore.png"))
             self.frame_size_grip.hide()
             self.left_grip.hide()
             self.right_grip.hide()
@@ -546,9 +603,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.showNormal()
             self.resize(self.width() + 1, self.height() + 1)
-            self.verticalLayout_32.setContentsMargins(10, 10, 10, 10)
+            self.verticalLayout_12.setContentsMargins(10, 10, 10, 10)
             self.maximizeRestoreAppBtn.setToolTip("Maximize")
-            self.maximizeRestoreAppBtn.setIcon(QIcon(u":/icons/icons/icon_maximize.png"))
+            self.maximizeRestoreAppBtn.setIcon(QIcon(":/icons/icons/icon_maximize.png"))
             self.frame_size_grip.show()
             self.left_grip.show()
             self.right_grip.show()
@@ -580,12 +637,18 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             widget: QPushButton = self.findChild(QPushButton, self.current_selected_btn)
 
         if is_add:
-            widget.setStyleSheet(widget.styleSheet() + self.config.MENU_SELECTED_STYLESHEET)
+            widget.setStyleSheet(
+                widget.styleSheet() + self.config.MENU_SELECTED_STYLESHEET
+            )
         else:
-            widget.setStyleSheet(widget.styleSheet().replace(self.config.MENU_SELECTED_STYLESHEET, ''))
+            widget.setStyleSheet(
+                widget.styleSheet().replace(self.config.MENU_SELECTED_STYLESHEET, "")
+            )
         # print(widget.objectName(), widget.styleSheet())
 
-    def toggle_setting_btn_style(self, add_default_style=False) -> Union[Tuple[int, int], None]:
+    def toggle_setting_btn_style(
+        self, add_default_style=False
+    ) -> Union[Tuple[int, int], None]:
         """根据方向和是否添加的标志，切换给定控件的样式。
 
         Args:
@@ -595,15 +658,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             关于动画组移动的元组 或 None
         """
         color_map = {
-            'left': self.config.BTN_LEFT_BOX_COLOR,
-            'right': self.config.BTN_RIGHT_BOX_COLOR,
+            "left": self.config.BTN_LEFT_BOX_COLOR,
+            "right": self.config.BTN_RIGHT_BOX_COLOR,
         }
 
         direction_map = {
-            'toggleLeftBox': 'left',
-            'btn_new': 'left',
-            'extraCloseColumnBtn': 'left',
-            'settingsTopBtn': 'right'
+            "toggleLeftBox": "left",
+            "btn_new": "left",
+            "extraCloseColumnBtn": "left",
+            "settingsTopBtn": "right",
         }
 
         # 获取触发当前动画的按钮 和 动画触发方向
@@ -612,10 +675,16 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 计算左右侧面板应该展开或收起的目标宽度
         left_width = self.extraLeftBox.width()
         right_width = self.extraRightBox.width()
-        target_left_width = self.config.LEFT_BOX_WIDTH if (left_width == 0 and direction == "left") else 0
-        target_right_width = self.config.RIGHT_BOX_WIDTH if (right_width == 0 and direction == "right") else 0
-
-
+        target_left_width = (
+            self.config.LEFT_BOX_WIDTH
+            if (left_width == 0 and direction == "left")
+            else 0
+        )
+        target_right_width = (
+            self.config.RIGHT_BOX_WIDTH
+            if (right_width == 0 and direction == "right")
+            else 0
+        )
 
         return target_left_width, target_right_width
 
@@ -638,8 +707,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def switch_page(self):
         """切换页面"""
         page_map = {
-            'btn_home': self.FileCheck,
-            'btn_widgets': self.DownloadCheck,
+            "btn_home": self.FileCheck,
+            "btn_widgets": self.DownloadCheck,
         }
         selected_btn = self.sender()
         selected_btn_name: str = selected_btn.objectName()
@@ -690,8 +759,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     selected_items = source_table.selectedItems()
                     if selected_items:
                         row = selected_items[0].row()
-                        data = [source_table.item(row, col).text() if source_table.item(row, col) else ""
-                                for col in range(source_table.columnCount())]
+                        data = [
+                            (
+                                source_table.item(row, col).text()
+                                if source_table.item(row, col)
+                                else ""
+                            )
+                            for col in range(source_table.columnCount())
+                        ]
                         print(f"拖拽内容：{data}")
                 return False  # 返回 False 表示让 Qt 继续处理 drop（如移动/复制项）
         return super().eventFilter(obj, event)
@@ -743,6 +818,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         else:
             self.FromLocal.setStyleSheet(unselected_style)
             self.ToLocal.setStyleSheet(selected_style)
+
     def init_RecButton(self):
         selected_style = """
             QPushButton {
@@ -763,34 +839,58 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButton.clicked.connect(lambda: self.set_ReceivingData())
 
     ###################################################Sending Receiving button event handling ######################################
-    def handle_row_change(self,name:str,row:int,flag:int):
-        if name == 'FromSendingData':
+    def handle_row_change(self, name: str, row: int, flag: int):
+        if name == "FromSendingData":
             data = self.FromSendingData_list[row]
             self.set_fromSendingData()
-        elif name == 'ToSendingData':
+        elif name == "ToSendingData":
             data = self.ToSendingData_list[row]
             self.set_toSendingData()
-        self.controller.stop_continue(data,flag)
-    def handle_row_deleted(self,name:str, row:int):
-        if name == 'FromSendingData':
+        self.controller.stop_continue(data, flag)
+
+    def handle_row_deleted(self, name: str, row: int):
+        if name == "FromSendingData":
             data = self.FromSendingData_list[row]
             self.set_fromSendingData()
-        elif name == 'ToSendingData':
+        elif name == "ToSendingData":
             data = self.ToSendingData_list[row]
             self.set_toSendingData()
-        elif name == 'tableWidget_5':
+        elif name == "tableWidget_5":
             data = self.ReceivingData_list[row]
             self.set_ReceivingData()
         self.controller.delete_task(data)
         print(f"{name} 用户删除了第 {row} 行")
+
+    def run_async_in_qthread(self, coro_func: Callable, *args, **kwargs):
+        thread = QThread()
+        worker = AsyncWorker(coro_func, *args, **kwargs)
+        worker.moveToThread(thread)
+
+        thread.started.connect(worker.run)
+        worker.finished.connect(thread.quit)
+        worker.finished.connect(worker.deleteLater)
+        thread.finished.connect(thread.deleteLater)
+
+        thread.start()
+
+
 ####################################utils####################################################
 def get_parent_path(s: str) -> str:
-    if s == '/':
-        return '/'
-    return s.rsplit('/', 1)[0] if '/' in s else '/'
+    if s == "/":
+        path = "/"
+    if "/" in s:
+        path = s.rsplit("/", 1)[0]
+    elif "\\" in s:
+        path = s.rsplit("\\", 1)[0]
+    else:
+        path = "/"
+
+    return path
+
 
 class BackendEventSignalBridge(QObject):
     request_received = Signal(str)
+
 
 if __name__ == "__main__":
     app = QApplication()

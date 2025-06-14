@@ -62,7 +62,7 @@ class FileSharing:
         else:
             return os.path.exists(path)
 
-    def list_local_dir(self, path: Optional[str] = None) -> List[Dict[str, any]]:
+    def list_local_dir(self, path: Optional[str] = None) -> List[FileInfo]:
         """
         列出本地目录内容
         :param path: 目录路径
@@ -180,6 +180,22 @@ class FileSharing:
     def get_shared_dirs(self) -> Dict[str, dict]:
         """获取所有共享目录信息"""
         return self.shared_dirs.copy()
+
+    def enter_shared_dir(self, path: str):
+        """
+        进入共享目录
+        :param path: 共享目录路径
+        """
+        valid = False
+        for shared_path in self.shared_dirs:
+            if is_valid_subpath(shared_path, path):
+                valid = True
+                break
+
+        if not valid:
+            return list(self.get_shared_dirs().values())
+        else:
+            return self.list_local_dir(path)
 
     # peer_logic
     # 1.connect and add to peer_shares

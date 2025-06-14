@@ -36,6 +36,22 @@ def get_device_name():
     return "UnknownDevice"
 
 
+def get_local_ip():
+    """
+    获取本机在局域网中的IP地址（如192.168.x.x或10.x.x.x）。
+    """
+    try:
+        # 连接到一个外部地址（不会真的发送数据），以获得本地IP
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))  # Google DNS，仅用于获取本地IP
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+    except Exception:
+        return "127.0.0.1"  # 失败时返回回环地址
+
+
 # 示例用法
 if __name__ == "__main__":
     print(get_device_name())
+    print(get_local_ip())

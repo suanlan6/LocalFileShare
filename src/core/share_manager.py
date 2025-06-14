@@ -848,6 +848,9 @@ class ShareManager:
             List[FileInfo]: 本地共享目录的文件信息列表。
         """
         # 这里可以实现获取本地共享目录文件的逻辑
+        from src.utils.logger import _logger
+
+        _logger.info(f"get_local_directory: {directory}")
         return self.file_share.list_local_dir(path=directory)
 
     def set_shared_directory(self, directory: str) -> None:
@@ -865,3 +868,16 @@ class ShareManager:
         """
         # 这里可以实现取消本地共享目录的逻辑
         self.file_share.remove_shared_dir(path=directory)
+
+    def get_self_sharing_directory(self, directory: str = None) -> List[FileInfo]:
+        """
+        获取本地共享目录的文件列表。
+        Returns:
+            List[FileInfo]: 本地共享目录的文件信息列表。
+        """
+        # 这里可以实现获取本地共享目录文件的逻辑
+        return (
+            self.file_share.get_shared_dirs()
+            if not directory
+            else self.file_share.enter_shared_dir(path=directory)
+        )
