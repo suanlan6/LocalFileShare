@@ -301,6 +301,13 @@ class ShareManager:
         """
         pass
 
+    async def pre_connect(self, device_id: str, bindParam: dict) -> Dict[str, Any]:
+        return await self.auth.pre_connect(
+            from_device=self.bindDevice,
+            to_device=self._devices.get(device_id),
+            bind_param=bindParam,
+        )
+
     async def connect(
         self,
         device_id: str,

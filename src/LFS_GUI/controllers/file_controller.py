@@ -3,6 +3,8 @@ from os import path
 import random
 from itertools import count
 
+from typing import Dict, Any
+
 from src.common.fileConf import FileInfo, ShareType
 from src.common.device import Device
 from src.core.transfer.transfer_config import TransferStatus
@@ -157,11 +159,21 @@ class FileController:
         #     lambda: "127.0.0.1",
         # ]
         # return random.sample([f() for f in random.choices(choices, k=count)], k=count)
-        return [device.host_ip for device in self.share_manager._devices]
+        return [device for device in self.share_manager._devices]
+
+    async def request_connection(
+        self, device_id: str, bindParam: dict
+    ) -> Dict[str, Any]:
+        """
+        请求连接到指定设备
+        :param device: 设备标识符（IP或设备ID）
+        """
+        return await self.share_manager.pre_connect(device_id, bindParam)
 
     def sendCode(self, code: int) -> bool:
-        print(f"sendCode {code}")
-        return True
+        # print(f"sendCode {code}")
+        # return True
+        self.share_manager.connect(code)
 
     def submitConnect(self, ip: str) -> None:
         print(f"submitConnect {ip}")

@@ -1,23 +1,38 @@
 import random
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QPushButton, QHBoxLayout, QSpacerItem, QSizePolicy
+    QDialog,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QHBoxLayout,
+    QSpacerItem,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt
 
 
 from PySide6.QtWidgets import (
-    QDialog, QVBoxLayout, QLabel, QPushButton, QLineEdit, QHBoxLayout, QSizePolicy
+    QDialog,
+    QVBoxLayout,
+    QLabel,
+    QPushButton,
+    QLineEdit,
+    QHBoxLayout,
+    QSizePolicy,
 )
 from PySide6.QtCore import Qt
 
+
 class ConnectConfirmationDialog(QDialog):
-    def __init__(self, ip, parent=None):
+    def __init__(self, controller, ip, parent=None):
         super().__init__(parent)
         self.ip = ip
+        self.controller = controller
         self.connected = False
         self.setWindowTitle("连接确认")
         self.setFixedSize(320, 180)
-        self.setStyleSheet("""
+        self.setStyleSheet(
+            """
             QDialog {
                 background-color: white;
                 border-radius: 12px;
@@ -64,7 +79,8 @@ class ConnectConfirmationDialog(QDialog):
                 border-color: #2d8cf0;
                 outline: none;
             }
-        """)
+        """
+        )
 
         # 主垂直布局
         layout = QVBoxLayout(self)
@@ -114,11 +130,11 @@ class ConnectConfirmationDialog(QDialog):
         self.agreeBtn.hide()
         self.connected = True
 
-
     def on_cancel(self):
         print("hello")
         self.reject()
 
     def generate_code(self):
         import random
+
         return f"{random.randint(1000, 9999)}"

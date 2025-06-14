@@ -32,6 +32,8 @@ from src.LFS_GUI.config.config import LightConfig, DarkConfig
 
 from src.LFS_GUI.controllers.file_controller import FileController
 
+from src.LFS_GUI.utils.waiting_dialog import wait_future_with_dialog
+
 from src.LFS_GUI.views.ui_components.animations import (
     create_width_animation,
     create_animation_group,
@@ -184,7 +186,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def initialize_backend(self):
         def show_connect_dialog(ip: str):
-            dialog = ConnectConfirmationDialog(ip, self)
+            dialog = ConnectConfirmationDialog(self.controller, ip, self)
             dialog.exec()
             if dialog.connected:
                 print(f"已确认连接 {dialog.ip}")
@@ -585,30 +587,47 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         """
         self.host_list = self.controller.get_peer_data()
 
-        def create_handler(ip_address):
+        def create_handler(
+            device_unique_name_id: str, to_device_id: str, bindParam: dict
+        ):
             def on_button_clicked():
-                self.controller.sendCode(ip_address)
-                # 发起请求
+                # self.controller.request_connection(ip_address)
+                future = self.share_dispatcher.dispatch(
+                    self.controller.request_connection, to_device_id, bindParam
+                )
 
-                dialog = VerificationDialog(ip_address, self)
+                # 发起请求
+                result = wait_future_with_dialog(future, dialog)
+                dialog = VerificationDialog(device_unique_name_id, self)
+
                 if dialog.exec() == QDialog.Accepted:
                     code = dialog.get_code()
-                    print(f"用户输入验证码：{code}，目标IP：{ip_address}")
-                    if self.controller.sendCode(code):
-                        self.peerHost = ip_address
-                        self.HostLabel.setText(f"Host: {self.peerHost}")
+                    print(f"用户输入验证码：{code}，目标IP：{device_unique_name_id}")
+                    bindParam["session_id"] = result.get("session_id", "")
+                    bindParam["pin_code"] = code
+                    if self.controller.sendCode(to_device_id, bindParam):
+                        self.peerHost = bindParam["host"]
+                        self.HostLabel.setText(f"Host: {device_unique_name_id}")
                         self.peerData_initialize()
                 else:
                     print("用户取消了操作")
-                    self.backendConnect.request_received.emit(ip_address)
+                    self.backendConnect.request_received.emit(bindParam["host"])
 
             return on_button_clicked
 
-        for row, ip in enumerate(self.host_list):
+        for row, device in enumerate(self.host_list):
             self.peer.insertRow(row)
-            btn = QPushButton(ip)
+            device_unique_name_id = f"{device.device_name}@{device.host_ip}"
+            btn = QPushButton(device_unique_name_id)
             btn.setStyleSheet(button_style)
-            btn.clicked.connect(create_handler(ip))
+            bindParam = {
+                "fromDeviceId": self.controller.share_manager.bindDevice.device_id,
+                "host": f"{device.host_ip}",
+                "port": device.port,
+            }
+            btn.clicked.connect(
+                create_handler(device_unique_name_id, device.host_ip, bindParam)
+            )
             self.peer.setCellWidget(row, 0, btn)
 
     def initialize_window_resizing(self):
