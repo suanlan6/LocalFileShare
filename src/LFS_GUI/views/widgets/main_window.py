@@ -43,8 +43,9 @@ from src.LFS_GUI.views.ui_designs.ProgressBarWidget import ProgressBarWidget
 from src.LFS_GUI.views.ui_designs.VerificationDialog import VerificationDialog
 from src.LFS_GUI.views.ui_designs import Ui_MainWindow
 from src.LFS_GUI.views.widgets.custom_grips import CustomGrip
-from src.LFS_GUI.utils.async_worker import AsyncWorker
+from src.LFS_GUI.utils.async_worker import AsyncDispatcher
 from src.common.fileConf import ShareType, FileInfo
+from src.utils.logger import _logger
 
 
 class MainWindow(QMainWindow, Ui_MainWindow):
@@ -52,9 +53,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        #
+        # threads save the async worker threads
+        self._threads = {}
 
         self.controller = FileController()
+        self.init_share_dispatcher()
+        # start the server
+        self.share_dispatcher.dispatch(self.controller.start_server)
         self.is_maximum_size: bool = bool(0)
         self.left_grip: CustomGrip = None
         self.right_grip: CustomGrip = None
@@ -71,6 +76,34 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         #
         self.initialize_view()
         self.setup_connections()
+
+    def closeEvent(self, event):
+        """窗口关闭时执行清理逻辑"""
+        _logger.info("关闭窗口，正在清理资源...")
+
+        # # 若 FileController 有 stop_server 方法，也可以调用
+        # try:
+        #     self.share_dispatcher.dispatch(self.controller.stop_server)
+        # except Exception as e:
+        #     _logger.error(f"关闭服务时出错: {e}")
+
+        # 停止 dispatcher 的事件循环（标记退出）
+        self.share_dispatcher.stop()
+
+        # 停止 QThread
+        self.share_thread.quit()
+        self.share_thread.wait()
+
+        # 最后调用父类的 closeEvent，完成关闭
+        super().closeEvent(event)
+
+    def init_share_dispatcher(self):
+        self.share_thread = QThread()
+        self.share_dispatcher = AsyncDispatcher(self.controller.share_manager)
+        self.share_dispatcher.moveToThread(self.share_thread)
+
+        self.share_thread.started.connect(self.share_dispatcher.run)
+        self.share_thread.start()
 
     # noinspection PyTypeChecker
     def set_theme(self):
@@ -179,13 +212,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # self.configure_sr_table(self.sending)
         self.configure_sr_table(self.receiver)
 
-
         # localFile初始化
         def handle_click(row):
             info = self.localFile_list[row]
             if info.type == ShareType.FOLDER:
                 # 传递给 controller 再次获取其路径下的内容
                 self.localFile_initialize(parent_path=info.path)
+
         self.localFile.cellDoubleClicked.connect(handle_click)
         self.localFile_initialize()
         self.pushButton_2.setText("/")
@@ -199,6 +232,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if info.type == ShareType.FOLDER:
                 # 传递给 controller 再次获取其路径下的内容
                 self.fileSharing_initialize(parent_path=info.path)
+
         self.fileSharing.cellDoubleClicked.connect(handle_click)
         self.FileSharingLabel.setText("/")
         self.FileSharingLabel.clicked.connect(
@@ -213,6 +247,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             info = self.peerData_list[row]
             if info.type == ShareType.FOLDER:
                 self.peerData_initialize(parent_path=info.path)
+
         self.peerData.cellDoubleClicked.connect(handle_click)
         self.pushButton_3.setText("/")
         self.HostLabel.setText(f"Host: {self.peerHost}")
@@ -269,14 +304,17 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     path = self.pushButton_3.text()
                     device = self.peerHost
                     # self.controller.sending(device, path, self.localFile_list[data])
-                    self.run_async_in_qthread(
-                        self.controller.sending, device, path, self.localFile_list[data]
+                    self.share_dispatcher.dispatch(
+                        self.controller.sending,
+                        device,
+                        path,
+                        self.localFile_list[data],
                     )
                 elif source_name == "Sharing":
                     path = self.pushButton_3.text()
                     device = self.peerHost
                     # self.controller.sending(device, path, self.fileSharing_list[data])
-                    self.run_async_in_qthread(
+                    self.share_dispatcher.dispatch(
                         self.controller.sending,
                         device,
                         path,
@@ -286,19 +324,25 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 path = self.pushButton_2.text()
                 device = self.peerHost
                 # self.controller.receiving(device, path, self.peerData_list[data])
-                self.run_async_in_qthread(
-                    self.controller.receiving, device, path, self.peerData_list[data]
+                self.share_dispatcher.dispatch(
+                    self.controller.receiving,
+                    device,
+                    path,
+                    self.peerData_list[data],
                 )
             elif target_name == "Sharing":
                 if source_name == "LocalFile":
                     self.controller.set_sharing_file(self.localFile_list[data])
-                    self.fileSharing_initialize
+                    self.fileSharing_initialize()
                     return
                 path = self.FileSharingLabel.text()
                 device = self.peerHost
                 # self.controller.receiving(device, path, self.peerData_list[data])
-                self.run_async_in_qthread(
-                    self.controller.receiving, device, path, self.peerData_list[data]
+                self.share_dispatcher.dispatch(
+                    self.controller.receiving,
+                    device,
+                    path,
+                    self.peerData_list[data],
                 )
 
         table.rowDropped.connect(handle_row_dropped)
@@ -347,12 +391,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         table.setSelectionMode(QAbstractItemView.SingleSelection)
 
     def localFile_initialize(self, parent_path: str = None):
-        from src.utils.logger import _logger
-
         parent_path = parent_path if parent_path is not None else "/"
         self.pushButton_2.setText(parent_path)
-
-
 
         self.localFile.clearContents()
         self.localFile.setRowCount(0)
@@ -368,13 +408,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.localFile.setItem(row, 1, size_item)
             self.localFile.setItem(row, 2, type_item)
 
-
-
     def fileSharing_initialize(self, parent_path: str = None):
         parent_path = parent_path if parent_path is not None else "/"
         self.FileSharingLabel.setText(parent_path)
-
-
 
         self.fileSharing.clearContents()
         self.fileSharing.setRowCount(0)
@@ -388,7 +424,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             self.fileSharing.setItem(row, 1, size_item)
             self.fileSharing.setItem(row, 2, type_item)
         # 添加点击事件
-
 
     def peerData_initialize(self, parent_path: str = None):
         parent_path = parent_path if parent_path is not None else "/"
@@ -860,19 +895,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             data = self.ReceivingData_list[row]
             self.set_ReceivingData()
         self.controller.delete_task(data)
-        print(f"{name} 用户删除了第 {row} 行")
-
-    def run_async_in_qthread(self, coro_func: Callable, *args, **kwargs):
-        thread = QThread()
-        worker = AsyncWorker(coro_func, *args, **kwargs)
-        worker.moveToThread(thread)
-
-        thread.started.connect(worker.run)
-        worker.finished.connect(thread.quit)
-        worker.finished.connect(worker.deleteLater)
-        thread.finished.connect(thread.deleteLater)
-
-        thread.start()
+        _logger.info(f"{name} 用户删除了第 {row} 行")
 
 
 ####################################utils####################################################
@@ -890,7 +913,6 @@ def get_parent_path(s: str) -> str:
         return path + "\\" if "\\" not in path else path
 
     return "/"
-
 
 
 class BackendEventSignalBridge(QObject):

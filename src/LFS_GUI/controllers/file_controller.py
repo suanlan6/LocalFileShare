@@ -17,6 +17,12 @@ class FileController:
         device = Device(device_name=get_device_name(), host_ip=get_local_ip())
         self.share_manager = ShareManager(device)
 
+    async def start_server(self):
+        await self.share_manager.start_servers()
+
+    async def stop_server(self):
+        await self.share_manager.stop_servers()
+
     def get_local_file_info(self, path: str = None) -> list[FileInfo]:
         # 模拟数据：若 parent_file_info 存在，则路径为其路径下的子路径
         base_path = path if path else "/"
@@ -142,14 +148,15 @@ class FileController:
         )
 
     def get_peer_data(self):
-        count = 5
-        choices = [
-            lambda: f"192.168.0.{random.randint(1, 254)}",
-            lambda: f"10.0.0.{random.randint(1, 254)}",
-            lambda: f"172.16.{random.randint(0, 31)}.{random.randint(1, 254)}",
-            lambda: "127.0.0.1",
-        ]
-        return random.sample([f() for f in random.choices(choices, k=count)], k=count)
+        # count = 5
+        # choices = [
+        #     lambda: f"192.168.0.{random.randint(1, 254)}",
+        #     lambda: f"10.0.0.{random.randint(1, 254)}",
+        #     lambda: f"172.16.{random.randint(0, 31)}.{random.randint(1, 254)}",
+        #     lambda: "127.0.0.1",
+        # ]
+        # return random.sample([f() for f in random.choices(choices, k=count)], k=count)
+        return [device.host_ip for device in self.share_manager._devices]
 
     def sendCode(self, code: int) -> bool:
         print(f"sendCode {code}")
