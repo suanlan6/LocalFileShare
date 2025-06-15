@@ -17,8 +17,22 @@ class FileController:
 
     def __init__(self):
         print("FileController init")
-        device = Device(device_name=get_device_name(), host_ip=get_local_ip())
+        # device = Device(device_name=get_device_name(), host_ip=get_local_ip())
+        device = Device(
+            device_id="device1",
+            device_name="device1",
+            host_ip=get_local_ip(),
+            conn_port=19000,
+            transfer_port=19001,
+        )
         self.share_manager = ShareManager(device)
+        self.share_manager._devices["device2"] = Device(
+            device_id="device2",
+            device_name="device2",
+            host_ip="192.168.3.105",
+            conn_port=19000,
+            transfer_port=19001,
+        )
 
     async def start_server(self):
         await self.share_manager.start_servers()
@@ -40,24 +54,29 @@ class FileController:
 
         return self.share_manager.get_self_sharing_directory(directory=base_path)
 
-    def get_peer_file_info(self, device: str, path: str = None) -> list[FileInfo]:
+    async def get_peer_file_info(
+        self, device_id: str, path: str = None
+    ) -> list[FileInfo]:
         base_path = path if path else "/"
-        if device == "":
+        if device_id == "":
             return []
-        sample_types = [ShareType.FILE, ShareType.FOLDER, ShareType.PICTURE]
-        infos = []
+        # sample_types = [ShareType.FILE, ShareType.FOLDER, ShareType.PICTURE]
+        # infos = []
 
-        nun = random.randint(6, 10)
-        for i in range(10):
-            info = FileInfo(
-                name=f"Item_{i}",
-                size=random.randint(1000, 1000000),
-                path=f"{random.randint(1,1000)}/Item_{i}",
-                host="127.0.0.1:8000",
-                file_type=random.choice(sample_types),
-            )
-            infos.append(info)
-        return infos
+        # nun = random.randint(6, 10)
+        # for i in range(10):
+        #     info = FileInfo(
+        #         name=f"Item_{i}",
+        #         size=random.randint(1000, 1000000),
+        #         path=f"{random.randint(1,1000)}/Item_{i}",
+        #         host="127.0.0.1:8000",
+        #         file_type=random.choice(sample_types),
+        #     )
+        #     infos.append(info)
+        # return infos
+        return await self.share_manager.get_remote_shared_file(
+            device_id, bindParam={"directory": base_path}
+        )
 
     def get_fromSendingData_data(self):
         # mock_data = {}
@@ -136,18 +155,24 @@ class FileController:
         return self.share_manager.downloads
 
     # 拖拽触发的发送和接收事件
-    async def sending(self, device: str, path: str, info: FileInfo):
+    async def sending(
+        self, device_id: str, type: ShareType, dst_path: str, info: FileInfo
+    ):
         await self.share_manager.sendFile(
-            device=device,
-            path=path,
-            file_info=info,
+            device_id=device_id,
+            type=type,
+            dst_path=dst_path,
+            files=[info],
         )
 
-    async def receiving(self, device, path: str, info: FileInfo):
+    async def receiving(
+        self, device_id: str, type: ShareType, dst_path: str, info: FileInfo
+    ):
         await self.share_manager.downloadFile(
-            device=device,
-            path=path,
-            file_info=info,
+            device_id=device_id,
+            type=type,
+            dst_path=dst_path,
+            files=[info],
         )
 
     def get_peer_data(self):
@@ -159,7 +184,7 @@ class FileController:
         #     lambda: "127.0.0.1",
         # ]
         # return random.sample([f() for f in random.choices(choices, k=count)], k=count)
-        return [device for device in self.share_manager._devices]
+        return [device for device in self.share_manager._devices.values()]
 
     async def request_connection(
         self, device_id: str, bindParam: dict
@@ -170,21 +195,67 @@ class FileController:
         """
         return await self.share_manager.pre_connect(device_id, bindParam)
 
-    def sendCode(self, code: int) -> bool:
+    async def sendCode(self, device_id: str, bindParam: dict) -> Dict[str, Any]:
         # print(f"sendCode {code}")
         # return True
-        self.share_manager.connect(code)
+        return await self.share_manager.connect(device_id, bindParam)
 
     def submitConnect(self, ip: str) -> None:
         print(f"submitConnect {ip}")
 
-    def stop_continue(self, data, flag: int):
+    def stop_continue(self, device_id: str, file_id: str):
 
-        print(f"stop_continue {data}")
-        print("flag:", flag)
+        # print(f"stop_continue {data}")
+        # print("flag:", flag)
+        # self.share_manager.pause_upload_client(device_id, file_id)
+        pass
 
-    def delete_task(self, data):
-        print(f"delete_task {data}")
+    async def pause_client_upload_task(self, device_id: str, file_id: str):
+        """
+        暂停上传任务
+        :param device_id: 设备ID
+        :param file_id: 文件ID
+        """
+        # print(f"pause {device_id} {file_id}")
+        await self.share_manager.pause_upload_client(device_id, file_id)
+
+    async def resume_client_upload_task(self, device_id: str, file_id: str):
+        """
+        恢复上传任务
+        :param device_id: 设备ID
+        :param file_id: 文件ID
+        """
+        # print(f"resume {device_id} {file_id}")
+        await self.share_manager.resume_upload_client(device_id, file_id)
+
+    async def pause_client_download_task(self, device_id: str, file_id: str):
+        """
+        暂停下载任务
+        :param device_id: 设备ID
+        :param file_id: 文件ID
+        """
+        # print(f"pause {device_id} {file_id}")
+        await self.share_manager.pause_download(device_id, file_id)
+
+    async def resume_client_download_task(self, device_id: str, file_id: str):
+        """
+        恢复下载任务
+        :param device_id: 设备ID
+        :param file_id: 文件ID
+        """
+        # print(f"resume {device_id} {file_id}")
+        await self.share_manager.resume_download(device_id, file_id)
+
+    async def delete_client_upload_task(self, device_id: str, file_id: list[str]):
+        await self.share_manager.client_cancel_transfer(device_id, file_id)
+
+    async def delete_server_upload_task(self, device_id: str, file_id: list[str]):
+        # print(f"delete_server_upload_task {data}")
+        await self.share_manager.server_cancel_transfer(device_id, file_id)
+
+    async def delete_client_download_task(self, device_id: str, file_id: list[str]):
+        # print(f"delete_client_download_task {data}")
+        await self.share_manager.client_cancel_download(device_id, file_id)
 
     def set_sharing_file(self, file_info: FileInfo):
         """

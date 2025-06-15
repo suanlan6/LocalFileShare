@@ -12,14 +12,19 @@ def wait_future_with_dialog(future: asyncio.Future, dialog: QDialog) -> Any:
     """
     loop = QEventLoop()
 
-    def on_done(_):
-        loop.quit()
+    def check_future():
+        if future.done():
+            loop.quit()
+        else:
+            QTimer.singleShot(100, check_future)  # 继续检查
 
-    future.add_done_callback(on_done)
+    future.add_done_callback(lambda _: None)  # 可以不做事，只是确保 future 被监控
 
-    dialog.show()  # 显示等待框
-    QTimer.singleShot(100, loop.exec)  # 启动本地事件循环，防止卡死
+    dialog.show()
+    QTimer.singleShot(0, check_future)  # 立即开始检查
+    loop.exec()  # 阻塞直到 quit()
 
-    result = future.result()  # 注意：此时 future 已完成
-    dialog.accept()  # 关闭等待框
+    # future 已完成
+    result = future.result()
+    dialog.accept()
     return result
