@@ -45,8 +45,9 @@ from src.LFS_GUI.views.ui_designs.ConnectConfirmationDialog import (
 from src.LFS_GUI.views.ui_designs.ProgressBarWidget import ProgressBarWidget
 from src.LFS_GUI.views.ui_designs.VerificationDialog import VerificationDialog
 from src.LFS_GUI.views.ui_designs import Ui_MainWindow
+from src.LFS_GUI.views.ui_designs.LoadingDialog import LoadingDialog
 from src.LFS_GUI.views.widgets.custom_grips import CustomGrip
-from src.LFS_GUI.utils.async_worker import AsyncDispatcher
+from src.LFS_GUI.utils.async_worker import AsyncDispatcher, DispatcherThread
 from src.common.fileConf import ShareType, FileInfo
 from src.utils.logger import _logger
 
@@ -56,8 +57,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def __init__(self):
         super().__init__()
         self.setupUi(self)
-        # threads save the async worker threads
-        self._threads = {}
 
         self.controller = FileController()
         self.init_share_dispatcher()
@@ -80,33 +79,44 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.initialize_view()
         self.setup_connections()
 
-    # def closeEvent(self, event):
-    #     """窗口关闭时执行清理逻辑"""
-    #     _logger.info("关闭窗口，正在清理资源...")
+        self._is_closing = False
 
-    #     # # 若 FileController 有 stop_server 方法，也可以调用
-    #     # try:
-    #     #     self.share_dispatcher.dispatch(self.controller.stop_server)
-    #     # except Exception as e:
-    #     #     _logger.error(f"关闭服务时出错: {e}")
+    def closeEvent(self, event):
+        if getattr(self, "_is_closing", False):
+            event.accept()
+            return
 
-    #     # 停止 dispatcher 的事件循环（标记退出）
-    #     self.share_dispatcher.stop()
+        self._is_closing = True
+        _logger.info("关闭窗口，正在清理资源...")
 
-    #     # 停止 QThread
-    #     self.share_thread.quit()
-    #     self.share_thread.wait()
+        # stop the server
+        self.share_dispatcher.dispatch(self.controller.stop_server, need_result=True)
 
-    #     # 最后调用父类的 closeEvent，完成关闭
-    #     super().closeEvent(event)
+        try:
+            self.share_dispatcher.stop()  # ✅ 直接调用同步 stop，不 dispatch
+        except Exception as e:
+            _logger.error(f"Dispatcher stop error: {e}")
+
+        def _delayed_cleanup():
+            self.share_thread.quit()
+            self.share_thread.wait()
+            _logger.info("清理完成，关闭窗口")
+            self.close()
+            # super().close()  # ✅ 调用父类 close，防止再次触发 closeEvent
+
+        QTimer.singleShot(100, _delayed_cleanup)
+        event.ignore()
 
     def init_share_dispatcher(self):
-        self.share_thread = QThread()
         self.share_dispatcher = AsyncDispatcher(self.controller.share_manager)
-        self.share_dispatcher.moveToThread(self.share_thread)
-
-        self.share_thread.started.connect(self.share_dispatcher.run)
+        self.share_thread = DispatcherThread(self.share_dispatcher)
         self.share_thread.start()
+
+        while self.share_thread.get_loop() is None:
+            _logger.info("等待事件循环初始化...")
+            QThread.sleep(1)
+
+        self.share_dispatcher.set_loop(self.share_thread.get_loop())
 
     # noinspection PyTypeChecker
     def set_theme(self):
@@ -296,6 +306,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.localFile_list = []
         self.fileSharing_list = []
         self.peerHost = ""
+        self.peerDeviceId = ""
         self.peerData_list = []
         self.FromSendingData_list = []
         self.ToSendingData_list = []
@@ -309,31 +320,32 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if target_name == "peerDocument":
                 if source_name == "LocalFile":
                     path = self.pushButton_3.text()
-                    device = self.peerHost
-                    # self.controller.sending(device, path, self.localFile_list[data])
+                    device = self.peerDeviceId
                     self.share_dispatcher.dispatch(
                         self.controller.sending,
                         device,
+                        ShareType.FILE,
                         path,
                         self.localFile_list[data],
                     )
                 elif source_name == "Sharing":
                     path = self.pushButton_3.text()
-                    device = self.peerHost
-                    # self.controller.sending(device, path, self.fileSharing_list[data])
+                    device = self.peerDeviceId
                     self.share_dispatcher.dispatch(
                         self.controller.sending,
                         device,
+                        ShareType.FILE,
                         path,
                         self.fileSharing_list[data],
                     )
             elif target_name == "LocalFile":
                 path = self.pushButton_2.text()
-                device = self.peerHost
+                device = self.peerDeviceId
                 # self.controller.receiving(device, path, self.peerData_list[data])
                 self.share_dispatcher.dispatch(
                     self.controller.receiving,
                     device,
+                    ShareType.FILE,
                     path,
                     self.peerData_list[data],
                 )
@@ -343,11 +355,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     self.fileSharing_initialize()
                     return
                 path = self.FileSharingLabel.text()
-                device = self.peerHost
+                device = self.peerDeviceId
                 # self.controller.receiving(device, path, self.peerData_list[data])
                 self.share_dispatcher.dispatch(
                     self.controller.receiving,
                     device,
+                    ShareType.FILE,
                     path,
                     self.peerData_list[data],
                 )
@@ -437,9 +450,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.pushButton_3.setText(parent_path)
         self.peerData.clearContents()
         self.peerData.setRowCount(0)
-        self.peerData_list = self.controller.get_peer_file_info(
-            self.peerHost, parent_path
+        future = self.share_dispatcher.dispatch(
+            self.controller.get_peer_file_info,
+            self.peerDeviceId,
+            parent_path,
+            need_result=True,
         )
+        self.peerData_list = future.result()
         self.peerData.setRowCount(len(self.peerData_list))
         for row, info in enumerate(self.peerData_list):
             name_item = QTableWidgetItem(info.name)
@@ -501,7 +518,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
-                item = QTableWidgetItem(size)
+                item = QTableWidgetItem(format_file_size(size))
                 item.setTextAlignment(Qt.AlignCenter)
                 table.setItem(row_idx, 1, item)
                 progress_widget = ProgressBarWidget(table)
@@ -593,24 +610,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             def on_button_clicked():
                 # self.controller.request_connection(ip_address)
                 future = self.share_dispatcher.dispatch(
-                    self.controller.request_connection, to_device_id, bindParam
+                    self.controller.request_connection,
+                    to_device_id,
+                    bindParam,
+                    need_result=True,
                 )
-
+                waiting_context = LoadingDialog(self, text="正在连接对方设备...")
                 # 发起请求
-                result = wait_future_with_dialog(future, dialog)
+                result = wait_future_with_dialog(future, waiting_context)
                 dialog = VerificationDialog(device_unique_name_id, self)
 
                 if dialog.exec() == QDialog.Accepted:
                     code = dialog.get_code()
-                    print(f"用户输入验证码：{code}，目标IP：{device_unique_name_id}")
+                    _logger.info(
+                        f"用户输入验证码：{code}，目标IP：{device_unique_name_id}"
+                    )
                     bindParam["session_id"] = result.get("session_id", "")
                     bindParam["pin_code"] = code
-                    if self.controller.sendCode(to_device_id, bindParam):
+                    future = self.share_dispatcher.dispatch(
+                        self.controller.sendCode,
+                        to_device_id,
+                        bindParam,
+                        need_result=True,
+                    )
+                    result = wait_future_with_dialog(future, waiting_context)
+                    if result["status"] == "success":
                         self.peerHost = bindParam["host"]
+                        self.peerDeviceId = to_device_id
                         self.HostLabel.setText(f"Host: {device_unique_name_id}")
                         self.peerData_initialize()
+                    else:
+                        _logger.info(f"连接失败: {result.get('message', '未知错误')}")
+                        self.backendConnect.request_received.emit(bindParam["host"])
                 else:
-                    print("用户取消了操作")
+                    _logger.info("用户取消了操作")
                     self.backendConnect.request_received.emit(bindParam["host"])
 
             return on_button_clicked
@@ -623,10 +656,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             bindParam = {
                 "fromDeviceId": self.controller.share_manager.bindDevice.device_id,
                 "host": f"{device.host_ip}",
-                "port": device.port,
+                "port": device.conn_port,
             }
             btn.clicked.connect(
-                create_handler(device_unique_name_id, device.host_ip, bindParam)
+                create_handler(device_unique_name_id, device.device_id, bindParam)
             )
             self.peer.setCellWidget(row, 0, btn)
 
@@ -903,22 +936,63 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         if name == "FromSendingData":
             data = self.FromSendingData_list[row]
             self.set_fromSendingData()
+            if flag == 1:  # 暂停
+                self.share_dispatcher.dispatch(
+                    self.controller.pause_client_upload_task,
+                    data["device_id"],
+                    data["file_id"],
+                )
+            elif flag == 0:  # 恢复
+                self.share_dispatcher.dispatch(
+                    self.controller.resume_client_upload_task,
+                    data["device_id"],
+                    data["file_id"],
+                )
+            else:
+                _logger.info(f"{name} 用户更改了第 {row} 行的状态，未知标志: {flag}")
         elif name == "ToSendingData":
             data = self.ToSendingData_list[row]
             self.set_toSendingData()
-        self.controller.stop_continue(data, flag)
+            if flag == 1:  # 暂停
+                self.share_dispatcher.dispatch(
+                    self.controller.pause_client_download_task,
+                    data["device_id"],
+                    data["file_id"],
+                )
+            elif flag == 0:  # 恢复
+                self.share_dispatcher.dispatch(
+                    self.controller.resume_client_download_task,
+                    data["device_id"],
+                    data["file_id"],
+                )
+            else:
+                _logger.info(f"{name} 用户更改了第 {row} 行的状态，未知标志: {flag}")
 
     def handle_row_deleted(self, name: str, row: int):
         if name == "FromSendingData":
             data = self.FromSendingData_list[row]
             self.set_fromSendingData()
+            self.share_dispatcher.dispatch(
+                self.controller.delete_client_upload_task,
+                data["device_id"],
+                [data["file_id"]],
+            )
         elif name == "ToSendingData":
             data = self.ToSendingData_list[row]
             self.set_toSendingData()
+            self.share_dispatcher.dispatch(
+                self.controller.delete_server_upload_task,
+                data["device_id"],
+                [data["file_id"]],
+            )
         elif name == "tableWidget_5":
             data = self.ReceivingData_list[row]
             self.set_ReceivingData()
-        self.controller.delete_task(data)
+            self.share_dispatcher.dispatch(
+                self.controller.delete_client_download_task,
+                data["device_id"],
+                [data["file_id"]],
+            )
         _logger.info(f"{name} 用户删除了第 {row} 行")
 
     def open_menu(self, pos: QPoint, table):
@@ -995,6 +1069,19 @@ def get_parent_path(s: str) -> str:
         return path + "\\" if "\\" not in path else path
 
     return "/"
+
+
+def format_file_size(size):
+    if size < 1024:
+        return f"{size} B"
+    elif size < 1024**2:
+        return f"{size / 1024:.2f} KB"
+    elif size < 1024**3:
+        return f"{size / (1024 ** 2):.2f} MB"
+    elif size < 1024**4:
+        return f"{size / (1024 ** 3):.2f} GB"
+    else:
+        return f"{size / (1024 ** 4):.2f} TB"
 
 
 class BackendEventSignalBridge(QObject):
