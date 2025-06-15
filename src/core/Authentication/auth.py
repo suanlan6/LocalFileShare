@@ -20,18 +20,11 @@ class Authentication:
         # TODO(仅供测试使用，实际应调用UI或规则逻辑):
         return True
 
-    async def authenticate(
-        self,
-        from_device: Device,
-        to_device: Device,
-        bind_param: Dict[str, Any],
+    async def pre_connect(
+        self, from_device: Device, to_device: Device, bind_param: Dict[str, Any]
     ) -> Dict[str, Any]:
         """
-        完整认证流程（发起连接请求、接收 PIN、输入 PIN、等待验证、完成连接）。
-        Returns:
-            {"token": str, "transfer_port": int}
-        Raises:
-            Exception: 若认证失败
+        预连接阶段，进行一些必要的准备工作。
         """
         connect_url = f"http://{to_device.host_ip}:{to_device.conn_port}/connect"
         payload = {
@@ -47,33 +40,64 @@ class Authentication:
             # 发起连接请求
             async with session.post(connect_url, json=payload, timeout=5) as resp:
                 if resp.status != 200:
-                    raise Exception(f"Request rejected: HTTP {resp.status}")
+                    return {
+                        "status": "error",
+                        "message": f"HTTP {resp.status}: {await resp.text()}",
+                    }
                 data = await resp.json()
                 _logger.info(f"Received connect response: {data}")
                 session_id = data["session_id"]
                 pin_code = data["pin"]
-                # expire_seconds = data["expire_seconds"]
+        return {
+            "status": "success",
+            "message": "success",
+            "session_id": session_id,
+            "pin_code": pin_code,
+        }
+
+    async def authenticate(
+        self,
+        from_device: Device,
+        to_device: Device,
+        bind_param: Dict[str, Any],
+    ) -> Dict[str, Any]:
+        """
+        完整认证流程（发起连接请求、接收 PIN、输入 PIN、等待验证、完成连接）。
+        Returns:
+            {"token": str, "transfer_port": int}
+        Raises:
+            Exception: 若认证失败
+        """
+
+        # expire_seconds = data["expire_seconds"]
 
         # 提示用户输入 PIN（可以换成自动确认）
-        user_pin = await self.prompt_pin_input(pin_code, timeout=120)
+        # user_pin = await self.prompt_pin_input(pin_code, timeout=120)
 
         # 向目标设备发送 PIN 校验请求
         verify_url = f"http://{to_device.host_ip}:{to_device.conn_port}/verify_pin"
-        verify_payload = {
-            "session_id": session_id,
-            "pin": user_pin,
-            "fromDeviceId": from_device.device_id,
-            "host": from_device.host_ip,
-            "port": from_device.transfer_port,
-        }
+        try:
+            verify_payload = {
+                "session_id": bind_param["session_id"],
+                "pin": bind_param["pin_code"],
+                "fromDeviceId": from_device.device_id,
+                "host": from_device.host_ip,
+                "port": from_device.transfer_port,
+            }
 
-        async with aiohttp.ClientSession() as session:
-            async with session.post(verify_url, json=verify_payload, timeout=5) as resp:
-                if resp.status != 200:
-                    raise Exception(f"PIN verification failed: HTTP {resp.status}")
-                verify_data = await resp.json()
+            async with aiohttp.ClientSession() as session:
+                async with session.post(
+                    verify_url, json=verify_payload, timeout=5
+                ) as resp:
+                    if resp.status != 200:
+                        raise Exception(f"PIN verification failed: HTTP {resp.status}")
+                    verify_data = await resp.json()
+        except Exception as e:
+            _logger.error(f"Authentication error: {e}")
+            return {"status": "error", "message": str(e)}
 
         return {
+            "status": "success",
             "token": verify_data["token"],
             "port": verify_data["transfer_port"],
         }

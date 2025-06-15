@@ -301,6 +301,13 @@ class ShareManager:
         """
         pass
 
+    async def pre_connect(self, device_id: str, bindParam: dict) -> Dict[str, Any]:
+        return await self.auth.pre_connect(
+            from_device=self.bindDevice,
+            to_device=self._devices.get(device_id),
+            bind_param=bindParam,
+        )
+
     async def connect(
         self,
         device_id: str,
@@ -548,7 +555,7 @@ class ShareManager:
         """
         pass
 
-    async def cancelSendFileForFiles(self, device_id: str, file_ids: List[str]) -> None:
+    async def server_cancel_transfer(self, device_id: str, file_ids: List[str]) -> None:
         """
         取消特定的文件传输。
         Args:
@@ -685,6 +692,10 @@ class ShareManager:
         if not file_ids or not device_id:
             return web.Response(status=400, text="Missing file_ids or device_id")
 
+        if device_id not in self.upload_by_other:
+            _logger.error(f"[服务端] 未找到设备 {device_id} 的上传任务")
+            return web.Response(status=400, text="Device not found")
+
         remove_files = []
         remove_tids = []
         async with self.upload_lock:
@@ -717,7 +728,7 @@ class ShareManager:
 
         return web.Response(status=200, text="成功取消传输任务")
 
-    async def cancel_download_client(self, device_id: str, file_ids: List[str]) -> None:
+    async def client_cancel_download(self, device_id: str, file_ids: List[str]) -> None:
         """
         客户端取消下载任务。
         Args:
@@ -848,6 +859,9 @@ class ShareManager:
             List[FileInfo]: 本地共享目录的文件信息列表。
         """
         # 这里可以实现获取本地共享目录文件的逻辑
+        from src.utils.logger import _logger
+
+        _logger.info(f"get_local_directory: {directory}")
         return self.file_share.list_local_dir(path=directory)
 
     def set_shared_directory(self, directory: str) -> None:
@@ -865,3 +879,16 @@ class ShareManager:
         """
         # 这里可以实现取消本地共享目录的逻辑
         self.file_share.remove_shared_dir(path=directory)
+
+    def get_self_sharing_directory(self, directory: str = None) -> List[FileInfo]:
+        """
+        获取本地共享目录的文件列表。
+        Returns:
+            List[FileInfo]: 本地共享目录的文件信息列表。
+        """
+        # 这里可以实现获取本地共享目录文件的逻辑
+        return (
+            self.file_share.get_shared_dirs()
+            if not directory
+            else self.file_share.enter_shared_dir(path=directory)
+        )

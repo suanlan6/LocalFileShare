@@ -18,7 +18,7 @@ class FileInfo:
         name: str,
         size: int,
         path: str,
-        host: str,
+        host: str = None,
         file_type: ShareType = ShareType.OTHER,
     ):
         self.name = name  # 文件名

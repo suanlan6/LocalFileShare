@@ -2,12 +2,16 @@ from PySide6.QtCore import Signal, Qt
 from PySide6.QtWidgets import QTableWidget, QTableWidgetItem
 
 
-from src.LFS_GUI.views.ui_designs.ButtonWidget import ButtonReceivingWidget, ButtonSendingWidget
+from src.LFS_GUI.views.ui_designs.ButtonWidget import (
+    ButtonReceivingWidget,
+    ButtonSendingWidget,
+)
 
 
 class HoverableTable(QTableWidget):
-    rowDeleted = Signal(str,int)
-    rowChanged = Signal(str,int,int)
+    rowDeleted = Signal(str, int)
+    rowChanged = Signal(str, int, int)
+
     def __init__(self, parent=None):
         super().__init__(parent)
         self.data = None
@@ -15,6 +19,7 @@ class HoverableTable(QTableWidget):
         self.current_hover_row = -1
         self.original_texts = {}  # {row: text}
         self.parent = parent
+
     def mouseMoveEvent(self, event):
         index = self.indexAt(event.pos())
         if not index.isValid():
@@ -40,11 +45,11 @@ class HoverableTable(QTableWidget):
             self.original_texts[row] = item.text()
             # 移除原始 item，防止文本重叠
             self.takeItem(row, 1)
-        if self.parent.objectName()=='verticalFrame_21':
-            button_widget = ButtonReceivingWidget(row,self)
+        if self.objectName() == "FromSendingData":
+            status = self.data[row]["status"]
+            button_widget = ButtonSendingWidget(row, status, self)
         else:
-            status = self.data[row]['status']
-            button_widget = ButtonSendingWidget(row,status,self)
+            button_widget = ButtonReceivingWidget(row, self)
 
         if hasattr(button_widget, "rowDeleted"):
             button_widget.rowDeleted.connect(self.rowDeleted)
@@ -52,8 +57,6 @@ class HoverableTable(QTableWidget):
             button_widget.rowChanged.connect(self.rowChanged)
 
         self.setCellWidget(row, 1, button_widget)
-
-
 
     def restore_previous_row(self):
         if self.current_hover_row >= 0:

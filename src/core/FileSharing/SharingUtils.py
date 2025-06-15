@@ -3,6 +3,8 @@ import os
 import platform
 from typing import List, Dict
 
+from src.common.fileConf import FileInfo, ShareType
+
 
 def _is_hidden_or_system_file(entry: os.DirEntry) -> bool:
     """检查文件或目录是否隐藏或系统文件"""
@@ -49,16 +51,31 @@ def is_valid_subpath(shared_path, req_path):
         return False
 
 
-def _get_windows_drives() -> List[Dict[str, any]]:
+def _get_windows_drives() -> List[FileInfo]:
     """获取Windows所有逻辑驱动器信息"""
     drives = []
     for letter in "ABCDEFGHIJKLMNOPQRSTUVWXYZ":
         drive = f"{letter}:\\"
         if os.path.exists(drive):
             drives.append(
-                {
-                    "name": f"本地磁盘 ({letter}:)",
-                    "path": drive,
-                }
+                FileInfo(
+                    name=f"本地磁盘 ({letter}:)",
+                    size=0,
+                    path=drive,
+                    file_type=ShareType.FOLDER,
+                )
             )
     return drives
+
+
+def get_file_type(file_path: str) -> ShareType:
+    """根据文件扩展名返回文件类型"""
+    ext = os.path.splitext(file_path)[1].lower()
+    if ext in [".jpg", ".jpeg", ".png", ".gif", ".bmp", ".webp"]:
+        return ShareType.PICTURE
+    elif os.path.isdir(file_path):
+        return ShareType.FOLDER
+    elif os.path.isfile(file_path):
+        return ShareType.FILE
+    else:
+        return ShareType.OTHER
