@@ -42,7 +42,7 @@ class Authentication:
                 if resp.status != 200:
                     return {
                         "status": "error",
-                        "message": f"HTTP {resp.status}: {resp.text}",
+                        "message": f"HTTP {resp.status}: {await resp.text()}",
                     }
                 data = await resp.json()
                 _logger.info(f"Received connect response: {data}")
