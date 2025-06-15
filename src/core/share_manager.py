@@ -555,7 +555,7 @@ class ShareManager:
         """
         pass
 
-    async def cancelSendFileForFiles(self, device_id: str, file_ids: List[str]) -> None:
+    async def server_cancel_transfer(self, device_id: str, file_ids: List[str]) -> None:
         """
         取消特定的文件传输。
         Args:
@@ -692,6 +692,10 @@ class ShareManager:
         if not file_ids or not device_id:
             return web.Response(status=400, text="Missing file_ids or device_id")
 
+        if device_id not in self.upload_by_other:
+            _logger.error(f"[服务端] 未找到设备 {device_id} 的上传任务")
+            return web.Response(status=400, text="Device not found")
+
         remove_files = []
         remove_tids = []
         async with self.upload_lock:
@@ -724,7 +728,7 @@ class ShareManager:
 
         return web.Response(status=200, text="成功取消传输任务")
 
-    async def cancel_download_client(self, device_id: str, file_ids: List[str]) -> None:
+    async def client_cancel_download(self, device_id: str, file_ids: List[str]) -> None:
         """
         客户端取消下载任务。
         Args:
