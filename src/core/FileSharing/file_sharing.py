@@ -160,11 +160,13 @@ class FileSharing:
         abs_path = os.path.abspath(target_path)
         name = os.path.basename(abs_path)
         file_type = get_file_type(abs_path)  # 确保路径有效
+
+        size = os.path.getsize(path) if os.path.isfile(path) else 0
         if self.os_type == "Windows" and abs_path.endswith(":\\"):
             name = f"{abs_path[0]}:"
         self.shared_dirs[abs_path] = FileInfo(
             name=name,
-            size=0,  # 共享目录不需要大小
+            size=size,  # 共享目录不需要大小
             path=abs_path,
             host=f"{self.host}",
             file_type=file_type,
