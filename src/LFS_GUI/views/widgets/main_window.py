@@ -310,10 +310,14 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for table in tables:
             self.sending_initialize(table)
 
-        def clicked_btn_widgets(row):
+        def clicked_btn_widgets():
             self.set_fromSendingData()
             self.set_toSendingData()
             self.set_ReceivingData()
+
+        self.timer = QTimer(self)
+        self.timer.timeout.connect(clicked_btn_widgets)
+        self.timer.start(5000)  # 每秒更新
 
         self.btn_widgets.clicked.connect(clicked_btn_widgets)
 

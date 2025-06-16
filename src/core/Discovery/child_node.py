@@ -88,7 +88,7 @@ def start_heartbeat(device, super_ip, super_port, interval=3):
 
     threading.Thread(target=_heartbeat_thread, daemon=True).start()
 
-
+'''
 def listen_heartbeat_ack(self_device: Device, port_offset=100):
     def _listen():
         global last_ack_time
@@ -110,7 +110,7 @@ def listen_heartbeat_ack(self_device: Device, port_offset=100):
                 break
 
     threading.Thread(target=_listen, daemon=True).start()
-
+'''
 
 def start_super_node_timeout_checker(self_device: Device, timeout=10):
     def _check():
@@ -119,7 +119,7 @@ def start_super_node_timeout_checker(self_device: Device, timeout=10):
             if time.time() - last_ack_time > timeout:
                 _logger.info("🛑 检测到超级节点掉线，启动自救")
                 reset_child_node_state()
-                from src.core.Discovery.lan_comm import start_hello_broadcast
+                from .lan_comm import start_hello_broadcast
 
                 start_hello_broadcast(self_device, lambda: not joined)
                 listen_super_node(self_device)
@@ -127,7 +127,7 @@ def start_super_node_timeout_checker(self_device: Device, timeout=10):
                 wait_time = randint(4, 8)
                 _logger.info(f"⏳ 等待加入超级节点（最多 {wait_time}s）...")
                 join_event.wait(timeout=wait_time)
-                from src.core.Discovery.lan_comm import stop_hello_broadcast
+                from .lan_comm import stop_hello_broadcast
 
                 stop_hello_broadcast()
                 time.sleep(2)
@@ -245,7 +245,6 @@ def choose_and_join(self_device: Device, on_join_callback):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(3)
-            _logger.info(f"📬 尝试连接超级节点 {chosen}")
             sock.connect((chosen["host_ip"], chosen["discovery_port"]))
             sock.send(json.dumps(payload).encode("utf-8"))
 
@@ -306,7 +305,7 @@ def choose_and_join(self_device: Device, on_join_callback):
     _logger.warning("⚠️ 子节点内部：未能加入任何超级节点 → 自动晋升为超级节点")
     time.sleep(randint(1, 5))  # 等待 socket 彻底释放
     # ⚠️ 使用新的空闲端口，避免和子节点冲突
-    from src.core.Discovery.device_start import find_free_port
+    from .device_start import find_free_port
 
     new_port = find_free_port()
     self_device.discovery_port = new_port
@@ -318,7 +317,7 @@ def choose_and_join(self_device: Device, on_join_callback):
     self_device.super_node_id = self_device.device_id
     _logger.info(f"📦 自身设备信息：{self_device.to_dict()}")
 
-    from super_node import SuperNode
+    from .super_node import SuperNode
 
     super_node = SuperNode(self_device)
     super_node.start()

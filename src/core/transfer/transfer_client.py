@@ -287,6 +287,8 @@ async def download_single_file(
     download_url = f"http://{host}:{port}/download_chunk"
     wait_tasks = []
 
+    final_file_id = None
+
     async with aiohttp.ClientSession() as session:
         # 获取文件信息
         if file.type == ShareType.FOLDER:
@@ -307,6 +309,7 @@ async def download_single_file(
 
         total_chunks = (total_size + CHUNK_SIZE - 1) // CHUNK_SIZE
         file_id = get_file_id(file_name, total_size)
+        final_file_id = file_id
         local_tmp_dir = os.path.join(dst_path, f".{file_id}.chunks")
         os.makedirs(local_tmp_dir, exist_ok=True)
 
@@ -422,6 +425,9 @@ async def download_single_file(
             extract_dir = os.path.join(dst_path, file_name[:-4])
             shutil.unpack_archive(local_path, extract_dir)
             os.remove(local_path)
+
+    async with download_lock:
+        download_control[final_file_id]["status"] = TransferStatus.COMPLETED
 
     for task in wait_tasks:
         await task
