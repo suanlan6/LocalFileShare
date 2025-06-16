@@ -225,11 +225,12 @@ class SuperNode:
     def handle_incoming_message(self, msg, addr):
         # print(f"📥 [调试] 收到消息 from {addr} → {msg}")
         msg_type = msg.get("type")
-
+        _logger.info(f"📥 收到消息 from {addr} → {msg}")
         if msg_type == "HELLO":
             self.handle_new_device(msg.get("device"), addr)
         elif msg_type == "SUPERNODE_HELLO":
             # print("msg", msg)
+            _logger.info("收到SUPERNODE_HELLO")
             info = msg.get("super_node")
             peer_id = info.get("device_id")
 
@@ -327,10 +328,6 @@ class SuperNode:
 
                 _logger.info(
                     f"📨 {self.device.device_name} 向 {dev_info['device_name']} 发出加入邀请（挂起确认）"
-                )
-
-                _logger.info(
-                    f"📡 发送邀请到子节点：{dev_info['device_name']} ({dev_info['discovery_port']})"
                 )
 
         send_sync_to_child(dev_info["host_ip"], dev_info["discovery_port"], payload)
