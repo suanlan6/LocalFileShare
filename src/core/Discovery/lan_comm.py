@@ -3,10 +3,11 @@ import json
 import threading
 import time
 
+from src.utils.system_utils import get_broadcast_ip
 from src.utils.logger import _logger
 
 BROADCAST_PORT = 9999
-BROADCAST_ADDR = "<broadcast>"
+BROADCAST_ADDR = get_broadcast_ip()
 ENCODING = "utf-8"
 # 添加状态控制变量
 _hello_broadcast_should_stop = False
