@@ -212,6 +212,7 @@ class FileController:
         #     lambda: "127.0.0.1",
         # ]
         # return random.sample([f() for f in random.choices(choices, k=count)], k=count)
+        self.share_manager.startScan()
         return [device for device in self.share_manager._devices.values()]
 
     async def request_connection(
