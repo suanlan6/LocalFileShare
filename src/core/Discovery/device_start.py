@@ -72,13 +72,18 @@ def node_start(
     device, ready_event: threading.Event, stop_event: threading.Event = None
 ):
     # 分配空闲端口并创建本机设备对象
-    port = find_free_port()
+    port1 = find_free_port()
+    port2 = find_free_port()
+    port3 = find_free_port()
+
     # device_name = generate_unique_name()
     # device = Device(device_name=device.device_name, conn_port=port)
-    device.conn_port = port
+    device.conn_port = port1
+    device.transfer_port = port2
+    device.discovery_port = port3
 
     _logger.info(
-        f"🚀 启动设备：{device.device_name} @ {device.host_ip}:{device.conn_port}"
+        f"🚀 启动设备：{device.device_name} @ {device.host_ip}:{device.discovery_port}"
     )
 
     # Step 1: 启动广播 & 子节点监听
@@ -102,13 +107,13 @@ def node_start(
 
             # ⚠️ 使用新的空闲端口，避免和子节点冲突
             new_port = find_free_port()
-            device.conn_port = new_port
+            device.discovery_port = new_port
 
             # 初始化超级节点信息
             device.is_super_node = True
             device.super_node_id = device.device_id
             device.super_ip = device.host_ip
-            device.super_port = device.conn_port
+            device.super_port = device.discovery_port
             device.device_type = device.device_type
 
             _logger.info(f"🔁 分配新端口用于超级节点：{new_port}")

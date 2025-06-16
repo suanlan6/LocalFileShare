@@ -13,6 +13,7 @@ class Device:
         host_ip: str = None,
         conn_port: int = 0,
         transfer_port: int = 0,
+        discovery_port: int = 0,
         is_super_node: bool = False,
         super_node_id: str = None,
         super_ip: str = None,
@@ -25,6 +26,7 @@ class Device:
         self.host_ip = host_ip or self._get_local_ip()
         self.conn_port = conn_port
         self.transfer_port = transfer_port
+        self.discovery_port = discovery_port
         self.is_super_node = is_super_node
         self.super_node_id = super_node_id
         self.super_ip = super_ip
