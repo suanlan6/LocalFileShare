@@ -52,8 +52,8 @@ class FileController:
 
         # TODO: FIX THE PARAMS
         base_path = path if path else "/"
-
-        return self.share_manager.get_self_sharing_directory(directory=base_path)
+        result = self.share_manager.get_self_sharing_directory(directory=base_path)
+        return result
 
     async def get_peer_file_info(
         self, device_id: str, path: str = None
@@ -184,23 +184,23 @@ class FileController:
 
     # 拖拽触发的发送和接收事件
     async def sending(
-        self, device_id: str, type: ShareType, dst_path: str, info: FileInfo
+        self, device_id: str, type: ShareType, dst_path: str, info: list[FileInfo]
     ):
         await self.share_manager.sendFile(
             device_id=device_id,
             type=type,
             dst_path=dst_path,
-            files=[info],
+            files=info,
         )
 
     async def receiving(
-        self, device_id: str, type: ShareType, dst_path: str, info: FileInfo
+        self, device_id: str, type: ShareType, dst_path: str, info: list[FileInfo]
     ):
         await self.share_manager.downloadFile(
             device_id=device_id,
             type=type,
             dst_path=dst_path,
-            files=[info],
+            files=info,
         )
 
     def get_peer_data(self):

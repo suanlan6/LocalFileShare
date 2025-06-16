@@ -4,7 +4,7 @@ from PySide6.QtGui import QDropEvent
 
 
 class DraggableTableWidget(QTableWidget):
-    rowDropped = Signal(str, str, int)
+    rowDropped = Signal(str, str, list)
 
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -19,8 +19,8 @@ class DraggableTableWidget(QTableWidget):
         if isinstance(source, QTableWidget) and source != self:
             selected_items = source.selectedItems()
             if selected_items:
-                row = selected_items[0].row()
-                self.rowDropped.emit(source.name, self.name, row)
+                # 获取所有选中的行索引，去重后排序
+                rows = sorted(set(item.row() for item in selected_items))
+                self.rowDropped.emit(source.name, self.name, rows)
         elif source == self:
-            # 同表格内部拖放
             print(f"内部拖放完成于 {self.name}")
