@@ -33,7 +33,7 @@ from src.utils.logger import _logger
 
 
 class ShareManager:
-    def __init__(self, device: Device):
+    def __init__(self, device: Device, backendConnect: Any):
         """初始化共享管理器"""
         self.bindDevice = device
         self._devices = {}
@@ -60,6 +60,10 @@ class ShareManager:
 
         # 安全验证模块
         self.auth = Authentication()
+
+        self.backendConnect = backendConnect
+
+        # 用于和前端交互的 HTTP 服务器
 
     # 启动两个简易http服务器监听连接端口和传输端口
     async def start_servers(self):
@@ -408,43 +412,79 @@ class ShareManager:
             from_device_id = bind_param.get("fromDeviceId")
             _logger.info(f"Received connect request from {from_device_id}")
 
-            # 1. 是否允许连接，由 self.auth 决定
-            accept = await self.auth.should_accept_connection(
-                from_device_id, bind_param
-            )
-
-            if not accept:
-                return web.json_response(
-                    {"error": "Connection rejected by user"}, status=403
-                )
-
             # 2. 生成 PIN 并设置有效期，例如 120 秒
             pin_code, session_id = self.auth.generate_pin(
                 from_device_id=from_device_id, expire_seconds=120
             )
 
-            _logger.info(f"PIN {pin_code} generated for {from_device_id}")
-
-            # # 3. 初始化上传任务
-            # self.upload_by_other[from_device_id] = {}
-            # # 这里可以加认证、校验逻辑
-            # self.client_connections[from_device_id] = {
-            #     "host": bind_param.get("host"),
-            #     "port": bind_param.get("port"),
-            #     "token": "example_token",  # 这里可以生成一个真实的token
-            # }
-            # 返回transfer端口信息给请求方
-            return web.json_response(
-                {
-                    "transfer_port": self.bindDevice.transfer_port,
-                    "pin": pin_code,
-                    "session_id": session_id,
-                    "expire_seconds": 120,  # PIN 有效期
-                }
+            # ✅ 通知 GUI 显示弹窗
+            loop = asyncio.get_event_loop()
+            response_future = loop.create_future()
+            loop.call_soon_threadsafe(
+                self.backendConnect.request_received.emit,
+                bind_param,
+                response_future,
+                pin_code,
+                loop,
             )
+
+            try:
+                # ✅ 等待前端返回确认结果（最多 30 秒）
+                result = await asyncio.wait_for(response_future, timeout=30.0)
+                if not result.get("confirm", False):
+                    return web.json_response({"error": "用户拒绝连接"}, status=403)
+
+                _logger.info(f"PIN {pin_code} generated for {from_device_id}")
+
+                return web.json_response(
+                    {
+                        "status": "success",
+                        "pin": pin_code,
+                        "session_id": session_id,
+                    }
+                )
+            except asyncio.TimeoutError:
+                _logger.warning("用户响应超时，默认拒绝连接")
+                return web.json_response(
+                    {"error": "用户未确认，连接请求被拒绝"}, status=403
+                )
+
         except Exception as e:
-            _logger.error(f"Error handling connect request: {str(e)}")
+            _logger.error(f"Error processing connect request: {str(e)}")
             return web.json_response({"error": str(e)}, status=500)
+
+    # async def handle_connect_later(self, from_device_id, bind_param):
+    #     # 1. 是否允许连接，由 self.auth 决定
+    #     try:
+    #         # accept = await self.auth.should_accept_connection(
+    #         #     from_device_id, bind_param
+    #         # )
+
+    #         # if not accept:
+    #         #     return web.json_response(
+    #         #         {"error": "Connection rejected by user"}, status=403
+    #         #     )
+
+    #         # # 3. 初始化上传任务
+    #         # self.upload_by_other[from_device_id] = {}
+    #         # # 这里可以加认证、校验逻辑
+    #         # self.client_connections[from_device_id] = {
+    #         #     "host": bind_param.get("host"),
+    #         #     "port": bind_param.get("port"),
+    #         #     "token": "example_token",  # 这里可以生成一个真实的token
+    #         # }
+    #         # 返回transfer端口信息给请求方
+    #         return web.json_response(
+    #             {
+    #                 "transfer_port": self.bindDevice.transfer_port,
+    #                 "pin": pin_code,
+    #                 "session_id": session_id,
+    #                 "expire_seconds": 120,  # PIN 有效期
+    #             }
+    #         )
+    #     except Exception as e:
+    #         _logger.error(f"Error handling connect request: {str(e)}")
+    #         return web.json_response({"error": str(e)}, status=500)
 
     async def handle_verify_pin(self, request: web.Request):
         """
@@ -538,6 +578,7 @@ class ShareManager:
             type (ShareType): 分享类型。
             files (List[FileInfo]): 文件信息数组。
         """
+        dst_path = f"{self.connections[device_id]['host']}:{self.connections[device_id]['port']}/{dst_path}"
         return await async_download_files(
             dst_path=dst_path,
             share_type=type,
@@ -575,17 +616,16 @@ class ShareManager:
                             )
                         )
                         del self.upload_by_other[device_id][file_id]
-                        # 如果该设备下已无记录，也移除设备项
-                        if not self.upload_by_other[device_id]:
-                            del self.upload_by_other[device_id]
+                        # # 如果该设备下已无记录，也移除设备项
+                        # if not self.upload_by_other[device_id]:
+                        #     del self.upload_by_other[device_id]
                     else:
                         _logger.error(
                             f"[!] 文件ID {file_id} 不存在于设备 {device_id} 上传任务中"
                         )
-                        return
+                        break
             else:
                 _logger.error(f"[!] 未找到设备 {device_id} 的上传任务")
-                return
 
         # 通知客户端
         await asyncio.gather(
@@ -620,6 +660,7 @@ class ShareManager:
             _logger.error(f"[x] 通知客户端取消失败: {e}")
 
     async def handle_cancel_transfer_client(self, request: web.Request) -> web.Response:
+        _logger.info("[客户端] 接收到取消传输任务请求")
         data = await request.json()
         file_id = data.get("file_id")
         if not file_id:
@@ -717,8 +758,8 @@ class ShareManager:
             # 删除上传记录
             for tid in remove_tids:
                 del transfers[tid]
-            if not transfers:
-                del self.upload_by_other[device_id]
+            # if not transfers:
+            #     del self.upload_by_other[device_id]
 
         # 删除取消的分片目录
         remove_task = asyncio.create_task(

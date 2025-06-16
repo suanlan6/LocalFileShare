@@ -278,18 +278,20 @@ async def async_send_files(
 async def download_single_file(
     file: FileInfo,
     dst_path: str,
+    host: str,
+    port: str,
     download_control: Dict[str, Dict[str, Any]],
     download_lock: asyncio.Lock,
     progress_callback: Optional[Callable[[str, float], None]] = None,
 ):
-    download_url = f"http://{file.host}/download_chunk"
+    download_url = f"http://{host}:{port}/download_chunk"
     wait_tasks = []
 
     async with aiohttp.ClientSession() as session:
         # 获取文件信息
         if file.type == ShareType.FOLDER:
             async with session.get(
-                f"http://{file.host}/prepare_folder_download",
+                f"http://{host}:{port}/prepare_folder_download",
                 params={"path": file.path},
             ) as resp:
                 if resp.status != 200:
@@ -340,7 +342,7 @@ async def download_single_file(
                             async def delete_remote_zip():
                                 try:
                                     async with session.post(
-                                        f"http://{file.host}/delete_folder_package",
+                                        f"http://{host}:{port}/delete_folder_package",
                                         json={"zip_path": file_path},
                                     ) as resp:
                                         if resp.status == 200:
@@ -445,12 +447,23 @@ async def async_download_files(
     Returns:
         Dict[str, str]: 返回一个字典，包含下载状态和消息。
     """
-    os.makedirs(dst_path, exist_ok=True)
+    try:
+        host_port, remote_dir = dst_path.split("/", 1)
+        host, port = host_port.split(":")
+    except ValueError:
+        raise ValueError("dst_path 格式应为 'ip:port/path'")
+    os.makedirs(remote_dir, exist_ok=True)
 
     await asyncio.gather(
         *[
             download_single_file(
-                f, dst_path, download_control, download_lock, progress_callback
+                f,
+                remote_dir,
+                host,
+                port,
+                download_control,
+                download_lock,
+                progress_callback,
             )
             for f in files
         ]

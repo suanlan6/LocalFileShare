@@ -38,7 +38,7 @@ class Authentication:
 
         async with aiohttp.ClientSession() as session:
             # 发起连接请求
-            async with session.post(connect_url, json=payload, timeout=5) as resp:
+            async with session.post(connect_url, json=payload, timeout=60) as resp:
                 if resp.status != 200:
                     return {
                         "status": "error",
@@ -46,14 +46,19 @@ class Authentication:
                     }
                 data = await resp.json()
                 _logger.info(f"Received connect response: {data}")
-                session_id = data["session_id"]
-                pin_code = data["pin"]
         return {
             "status": "success",
-            "message": "success",
-            "session_id": session_id,
-            "pin_code": pin_code,
+            "session_id": data["session_id"],
+            "pin_code": data["pin"],
         }
+        #         session_id = data["session_id"]
+        #         pin_code = data["pin"]
+        # return {
+        #     "status": "success",
+        #     "message": "success",
+        #     "session_id": session_id,
+        #     "pin_code": pin_code,
+        # }
 
     async def authenticate(
         self,
