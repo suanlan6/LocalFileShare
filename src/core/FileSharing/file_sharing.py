@@ -185,21 +185,30 @@ class FileSharing:
         """获取所有共享目录信息"""
         return self.shared_dirs.copy()
 
-    def enter_shared_dir(self, path: str):
+    def enter_shared_dir(self, path: str) -> Tuple[bool, List[FileInfo]]:
         """
-        进入共享目录
-        :param path: 共享目录路径
+        进入共享目录或子目录，或回到共享根目录视图。
+        :param path: 用户点击的路径
+        :return: 当前路径下的文件列表，或共享根目录视图
         """
-        valid = False
+        path = os.path.abspath(path)
+
+        # 第一次加载或非法路径
+        if path in ["", "/", ".", None] or not os.path.exists(path):
+            return False, list(self.get_shared_dirs().values())
+
+        matched_shared = None
         for shared_path in self.shared_dirs:
             if is_valid_subpath(shared_path, path):
-                valid = True
+                matched_shared = os.path.abspath(shared_path)
                 break
 
-        if not valid:
-            return list(self.get_shared_dirs().values())
-        else:
-            return self.list_local_dir(path)
+        if not matched_shared:
+            # 当前路径不在任何共享目录中，返回共享根目录
+            return False, list(self.get_shared_dirs().values())
+
+        # 如果是共享目录本身或其子目录：进入并显示内容
+        return True, self.list_local_dir(path)
 
     # peer_logic
     # 1.connect and add to peer_shares

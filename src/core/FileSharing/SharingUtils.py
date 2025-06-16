@@ -34,6 +34,42 @@ def _is_hidden_or_system_file(entry: os.DirEntry) -> bool:
     return entry.name.startswith(".")
 
 
+# def is_valid_subpath(shared_path, req_path):
+#     abs_shared = os.path.abspath(shared_path)
+#     abs_req = os.path.abspath(req_path)
+
+
+#     if os.name == "nt":
+#         if (
+#             os.path.splitdrive(abs_shared)[0].lower()
+#             != os.path.splitdrive(abs_req)[0].lower()
+#         ):
+#             return False
+#     try:
+#         return os.path.commonpath([abs_shared, abs_req]) == abs_shared
+#     except ValueError:
+#         return False
+
+
+# def is_valid_subpath(shared_path, req_path):
+#     abs_shared = os.path.abspath(shared_path)
+#     abs_req = os.path.abspath(req_path)
+
+#     if os.name == "nt":
+#         # 确保在 Windows 上盘符一致，且忽略大小写
+#         if (
+#             os.path.splitdrive(abs_shared)[0].lower()
+#             != os.path.splitdrive(abs_req)[0].lower()
+#         ):
+#             return False
+
+#     try:
+#         common = os.path.commonpath([abs_shared, abs_req])
+#         return common == abs_shared or common == abs_req
+#     except ValueError:
+#         return False
+
+
 def is_valid_subpath(shared_path, req_path):
     abs_shared = os.path.abspath(shared_path)
     abs_req = os.path.abspath(req_path)
@@ -44,7 +80,6 @@ def is_valid_subpath(shared_path, req_path):
             != os.path.splitdrive(abs_req)[0].lower()
         ):
             return False
-
     try:
         return os.path.commonpath([abs_shared, abs_req]) == abs_shared
     except ValueError:
