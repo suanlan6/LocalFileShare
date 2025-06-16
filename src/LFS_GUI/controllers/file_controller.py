@@ -15,24 +15,25 @@ from src.utils.logger import _logger
 
 class FileController:
 
-    def __init__(self):
+    def __init__(self, backendConnect):
         print("FileController init")
-        # device = Device(device_name=get_device_name(), host_ip=get_local_ip())
-        device = Device(
-            device_id="device1",
-            device_name="device1",
-            host_ip=get_local_ip(),
-            conn_port=19000,
-            transfer_port=19001,
-        )
-        self.share_manager = ShareManager(device)
-        self.share_manager._devices["device2"] = Device(
-            device_id="device2",
-            device_name="device2",
-            host_ip="192.168.3.105",
-            conn_port=19000,
-            transfer_port=19001,
-        )
+        device = Device(device_name=get_device_name(), host_ip=get_local_ip())
+        self.backendConnect = backendConnect
+        # device = Device(
+        #     device_id="device1",
+        #     device_name="device1",
+        #     host_ip=get_local_ip(),
+        #     conn_port=19998,
+        #     transfer_port=19999,
+        # )
+        self.share_manager = ShareManager(device, self.backendConnect)
+        # self.share_manager._devices["device2"] = Device(
+        #     device_id="device2",
+        #     device_name="device2",
+        #     host_ip="192.168.5.4",
+        #     conn_port=19998,
+        #     transfer_port=19999,
+        # )
 
     async def start_server(self):
         await self.share_manager.start_servers()
@@ -101,7 +102,16 @@ class FileController:
         #             "status": status,
         #         }
         # return mock_data
-        return self.share_manager.transfers
+        result = {}
+        for device_id, file_infos in self.share_manager.transfers.items():
+            result[device_id] = {}
+            for file_id, file in file_infos.items():
+                if (
+                    file["status"] == TransferStatus.RUNNING
+                    or file["status"] == TransferStatus.PAUSED
+                ):
+                    result[device_id][file_id] = file
+        return result
 
     def get_toSendingData_list_data(self):
         # mock_data = {}
@@ -127,7 +137,16 @@ class FileController:
         #         }
 
         # return mock_data
-        return self.share_manager.upload_by_other
+        result = {}
+        for device_id, file_infos in self.share_manager.upload_by_other.items():
+            result[device_id] = {}
+            for file_id, file in file_infos.items():
+                if (
+                    file["status"] == TransferStatus.RUNNING
+                    or file["status"] == TransferStatus.PAUSED
+                ):
+                    result[device_id][file_id] = file
+        return result
 
     def get_ReceivingData_list_data(self):
         # mock_data = {}
@@ -152,7 +171,16 @@ class FileController:
         #             "status": status,
         #         }
         # return mock_data
-        return self.share_manager.downloads
+        result = {}
+        for device_id, file_infos in self.share_manager.downloads.items():
+            result[device_id] = {}
+            for file_id, file in file_infos.items():
+                if (
+                    file["status"] == TransferStatus.RUNNING
+                    or file["status"] == TransferStatus.PAUSED
+                ):
+                    result[device_id][file_id] = file
+        return result
 
     # 拖拽触发的发送和接收事件
     async def sending(
@@ -198,10 +226,14 @@ class FileController:
     async def sendCode(self, device_id: str, bindParam: dict) -> Dict[str, Any]:
         # print(f"sendCode {code}")
         # return True
+        _logger.info(f"sendCode {device_id} {bindParam}")
         return await self.share_manager.connect(device_id, bindParam)
 
-    def submitConnect(self, ip: str) -> None:
-        print(f"submitConnect {ip}")
+    def submitConnect(self, bind_param: dict) -> None:
+        # print(f"submitConnect {ip}")
+        self.share_manager.handle_connect_latter(
+            self.share_manager.bindDevice.device_id, bind_param
+        )
 
     def stop_continue(self, device_id: str, file_id: str):
 

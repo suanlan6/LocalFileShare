@@ -20,14 +20,21 @@ from PySide6.QtWidgets import (
     QHBoxLayout,
     QSizePolicy,
 )
-from PySide6.QtCore import Qt
+from PySide6.QtCore import (
+    Qt,
+    Signal,
+)
 
 
 class ConnectConfirmationDialog(QDialog):
-    def __init__(self, controller, ip, parent=None):
+    confirmed = Signal()
+    rejected = Signal()
+
+    def __init__(self, controller, ip, pin_code, parent=None):
         super().__init__(parent)
         self.ip = ip
         self.controller = controller
+        self.pin_code = pin_code
         self.connected = False
         self.setWindowTitle("连接确认")
         self.setFixedSize(320, 180)
@@ -123,18 +130,14 @@ class ConnectConfirmationDialog(QDialog):
 
     def on_agree(self):
         # 显示验证码，删除取消按钮
-        self.verification_code = self.generate_code()
-        self.infoLabel.setText(f"验证码：{self.verification_code}")
+        self.infoLabel.setText(f"验证码：{self.pin_code}")
         self.codeLineEdit.setVisible(False)
         self.cancelBtn.hide()
         self.agreeBtn.hide()
         self.connected = True
+        self.confirmed.emit()
 
     def on_cancel(self):
         print("hello")
         self.reject()
-
-    def generate_code(self):
-        import random
-
-        return f"{random.randint(1000, 9999)}"
+        self.rejected.emit()

@@ -2,7 +2,7 @@ import os
 import sys
 from random import random
 from typing import Tuple, Union, Callable
-
+import asyncio
 from PySide6.QtCore import (
     Qt,
     QTimer,
@@ -58,10 +58,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         super().__init__()
         self.setupUi(self)
 
-        self.controller = FileController()
+        self.initialize_backend()
+        self.controller = FileController(self.backendConnect)
         self.init_share_dispatcher()
-        # start the server
-        self.share_dispatcher.dispatch(self.controller.start_server)
         self.is_maximum_size: bool = bool(0)
         self.left_grip: CustomGrip = None
         self.right_grip: CustomGrip = None
@@ -76,9 +75,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.current_selected_btn: str = "btn_home"
         self.config = LightConfig
         #
-        self.initialize_view()
+
         self.setup_connections()
 
+        self.initialize_view()
+
+        # start the server
+        self.share_dispatcher.dispatch(self.controller.start_server)
         self._is_closing = False
 
     def closeEvent(self, event):
@@ -164,8 +167,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 半透明
         self.setAttribute(Qt.WA_TranslucentBackground)
 
-        self.initialize_backend()
-
     def setup_connections(self):
         """事件绑定"""
         # 标题栏事件
@@ -195,12 +196,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.titleRightInfo.setText(description)
 
     def initialize_backend(self):
-        def show_connect_dialog(ip: str):
-            dialog = ConnectConfirmationDialog(self.controller, ip, self)
-            dialog.exec()
-            if dialog.connected:
-                print(f"已确认连接 {dialog.ip}")
-                self.controller.submitConnect(dialog.ip)
+        def show_connect_dialog(
+            bind_param: dict,
+            response_future: asyncio.Future,
+            pin_code: str,
+            loop: asyncio.AbstractEventLoop,
+        ):
+            dialog = ConnectConfirmationDialog(
+                self.controller, bind_param["host"], pin_code, self
+            )
+            dialog.show()
+            dialog.setWindowModality(Qt.ApplicationModal)
+
+            def handle_confirmed():
+                if not response_future.done():
+                    result = {"confirm": dialog.connected}
+                    loop.call_soon_threadsafe(response_future.set_result, result)
+                    print(f"已确认连接 {dialog.ip}")
+
+            def handle_rejected():
+                if not response_future.done():
+                    result = {"confirm": False}
+                    loop.call_soon_threadsafe(response_future.set_result, result)
+                    print(f"已拒绝连接 {dialog.ip}")
+                dialog.close()  # 显式关闭对话框
+
+            dialog.confirmed.connect(handle_confirmed)
+            dialog.rejected.connect(handle_rejected)
 
         self.backendConnect = BackendEventSignalBridge()
         self.backendConnect.request_received.connect(show_connect_dialog)
@@ -208,6 +230,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def initialize_table(self):
 
         self.initialize_table_data()
+
+        def clicked_btn_home():
+            self.localFile_initialize()
+            self.fileSharing_initialize()
+            self.peerData_initialize()
+
+        self.btn_home.clicked.connect(clicked_btn_home)
         self.localFile = self.tableWidget_2
         self.fileSharing = self.tableWidget_3
         self.peerData = self.PeerLabel
@@ -281,6 +310,13 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         for table in tables:
             self.sending_initialize(table)
 
+        def clicked_btn_widgets(row):
+            self.set_fromSendingData()
+            self.set_toSendingData()
+            self.set_ReceivingData()
+
+        self.btn_widgets.clicked.connect(clicked_btn_widgets)
+
         self.FromLocal.setText("传输中")
         self.FromLocal.clicked.connect(self.switch_to_from_local)
         self.set_fromSendingData()
@@ -296,7 +332,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.FromSendingData.rowDeleted.connect(self.handle_row_deleted)
         self.FromSendingData.rowChanged.connect(self.handle_row_change)
         self.ToSendingData.rowDeleted.connect(self.handle_row_deleted)
-        self.ToSendingData.rowChanged.connect(self.handle_row_change)
+        self.tableWidget_5.rowChanged.connect(self.handle_row_change)
         self.tableWidget_5.rowDeleted.connect(self.handle_row_deleted)
 
         self.btn_adjustments.clicked.connect(self.peer_initialize)
@@ -421,7 +457,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         for row, info in enumerate(self.localFile_list):
             name_item = QTableWidgetItem(info.name)
-            size_item = QTableWidgetItem(f"{info.size} KB")
+
+            if info.type == ShareType.FOLDER:
+                size_item = QTableWidgetItem("")
+            else:
+                size_item = QTableWidgetItem(f"{info.size} KB")
             type_item = QTableWidgetItem(info.type.name)
 
             self.localFile.setItem(row, 0, name_item)
@@ -438,7 +478,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.fileSharing.setRowCount(len(self.fileSharing_list))
         for row, info in enumerate(self.fileSharing_list):
             name_item = QTableWidgetItem(info.name)
-            size_item = QTableWidgetItem(f"{info.size} KB")
+            if info.type == ShareType.FOLDER:
+                size_item = QTableWidgetItem("")
+            else:
+                size_item = QTableWidgetItem(f"{info.size} KB")
             type_item = QTableWidgetItem(info.type.name)
             self.fileSharing.setItem(row, 0, name_item)
             self.fileSharing.setItem(row, 1, size_item)
@@ -460,7 +503,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.peerData.setRowCount(len(self.peerData_list))
         for row, info in enumerate(self.peerData_list):
             name_item = QTableWidgetItem(info.name)
-            size_item = QTableWidgetItem(f"{info.size} KB")
+            if info.type == ShareType.FOLDER:
+                size_item = QTableWidgetItem("")
+            else:
+                size_item = QTableWidgetItem(f"{info.size} KB")
             type_item = QTableWidgetItem(info.type.name)
             self.peerData.setItem(row, 0, name_item)
             self.peerData.setItem(row, 1, size_item)
@@ -557,7 +603,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def set_ReceivingData(self):
         table = self.tableWidget_5
-        receivingData_list = self.controller.get_toSendingData_list_data()
+        receivingData_list = self.controller.get_ReceivingData_list_data()
         self.ReceivingData_list = []
         table.clearContents()
         table.setRowCount(0)  # 清空所有行
@@ -573,7 +619,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
-                item = QTableWidgetItem(size)
+                item = QTableWidgetItem(format_file_size(size))
                 item.setTextAlignment(Qt.AlignCenter)
                 table.setItem(row_idx, 1, item)
                 progress_widget = ProgressBarWidget(table)
@@ -618,6 +664,9 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 waiting_context = LoadingDialog(self, text="正在连接对方设备...")
                 # 发起请求
                 result = wait_future_with_dialog(future, waiting_context)
+                if result["status"] != "success":
+                    _logger.info(f"连接失败: {result.get('error', '对方拒绝了你')}")
+                    return
                 dialog = VerificationDialog(device_unique_name_id, self)
 
                 if dialog.exec() == QDialog.Accepted:
@@ -641,10 +690,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         self.peerData_initialize()
                     else:
                         _logger.info(f"连接失败: {result.get('message', '未知错误')}")
-                        self.backendConnect.request_received.emit(bindParam["host"])
+                        # self.backendConnect.request_received.emit(bindParam["host"])
                 else:
                     _logger.info("用户取消了操作")
-                    self.backendConnect.request_received.emit(bindParam["host"])
+                    # self.backendConnect.request_received.emit(bindParam["host"])
 
             return on_button_clicked
 
@@ -935,7 +984,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def handle_row_change(self, name: str, row: int, flag: int):
         if name == "FromSendingData":
             data = self.FromSendingData_list[row]
-            self.set_fromSendingData()
+
             if flag == 1:  # 暂停
                 self.share_dispatcher.dispatch(
                     self.controller.pause_client_upload_task,
@@ -950,9 +999,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
             else:
                 _logger.info(f"{name} 用户更改了第 {row} 行的状态，未知标志: {flag}")
-        elif name == "ToSendingData":
-            data = self.ToSendingData_list[row]
-            self.set_toSendingData()
+            self.set_fromSendingData()
+        elif name == "tableWidget_5":
+
+            data = self.ReceivingData_list[row]
             if flag == 1:  # 暂停
                 self.share_dispatcher.dispatch(
                     self.controller.pause_client_download_task,
@@ -967,32 +1017,33 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 )
             else:
                 _logger.info(f"{name} 用户更改了第 {row} 行的状态，未知标志: {flag}")
+            self.set_ReceivingData()
 
     def handle_row_deleted(self, name: str, row: int):
         if name == "FromSendingData":
             data = self.FromSendingData_list[row]
-            self.set_fromSendingData()
             self.share_dispatcher.dispatch(
                 self.controller.delete_client_upload_task,
                 data["device_id"],
                 [data["file_id"]],
             )
+            self.set_fromSendingData()
         elif name == "ToSendingData":
             data = self.ToSendingData_list[row]
-            self.set_toSendingData()
             self.share_dispatcher.dispatch(
                 self.controller.delete_server_upload_task,
                 data["device_id"],
                 [data["file_id"]],
             )
+            self.set_toSendingData()
         elif name == "tableWidget_5":
             data = self.ReceivingData_list[row]
-            self.set_ReceivingData()
             self.share_dispatcher.dispatch(
                 self.controller.delete_client_download_task,
                 data["device_id"],
                 [data["file_id"]],
             )
+            self.set_ReceivingData()
         _logger.info(f"{name} 用户删除了第 {row} 行")
 
     def open_menu(self, pos: QPoint, table):
@@ -1085,7 +1136,7 @@ def format_file_size(size):
 
 
 class BackendEventSignalBridge(QObject):
-    request_received = Signal(str)
+    request_received = Signal(dict, asyncio.Future, str, asyncio.AbstractEventLoop)
 
 
 if __name__ == "__main__":

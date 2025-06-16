@@ -45,11 +45,11 @@ class HoverableTable(QTableWidget):
             self.original_texts[row] = item.text()
             # 移除原始 item，防止文本重叠
             self.takeItem(row, 1)
-        if self.objectName() == "FromSendingData":
+        if self.objectName() == "ToSendingData":
+            button_widget = ButtonReceivingWidget(row, self)
+        else:
             status = self.data[row]["status"]
             button_widget = ButtonSendingWidget(row, status, self)
-        else:
-            button_widget = ButtonReceivingWidget(row, self)
 
         if hasattr(button_widget, "rowDeleted"):
             button_widget.rowDeleted.connect(self.rowDeleted)
