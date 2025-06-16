@@ -245,6 +245,7 @@ def choose_and_join(self_device: Device, on_join_callback):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(3)
+            _logger.info(f"📬 尝试连接超级节点 {chosen}")
             sock.connect((chosen["host_ip"], chosen["discovery_port"]))
             sock.send(json.dumps(payload).encode("utf-8"))
 

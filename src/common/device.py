@@ -40,6 +40,7 @@ class Device:
             "host_ip": self.host_ip,
             "conn_port": self.conn_port,
             "transfer_port": self.transfer_port,
+            "discovery_port": self.discovery_port,
             "is_super_node": self.is_super_node,
             "super_node_id": self.super_node_id,
             "super_ip": self.super_ip,

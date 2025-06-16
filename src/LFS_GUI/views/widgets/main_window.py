@@ -350,6 +350,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.host_list = []
         self.confirm_list = []
 
+    #######################################################拖拽事件触发##########################################################
     def configure_table(self, table: QTableWidget):
         def handle_row_dropped(source_name, target_name, data):
             print(f"[MainWindow] 拖拽数据: {data} 从 {source_name} ➜ {target_name}")

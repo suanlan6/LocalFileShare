@@ -894,6 +894,7 @@ class ShareManager:
         try:
             async with aiohttp.ClientSession() as session:
                 async with session.post(connect_url, json=payload, timeout=5) as resp:
+                    _logger.info(f"Requesting {await resp.json()}")
                     if resp.status == 200:
                         return [FileInfo.from_dict(file) for file in await resp.json()]
                     else:
