@@ -29,7 +29,7 @@ def start_hello_broadcast(device, should_continue, interval=5):
             payload = {"type": "HELLO", "device": device.to_dict()}
             data = json.dumps(payload).encode(ENCODING)
 
-            sock.sendto(data, ("<broadcast>", BROADCAST_PORT))
+            sock.sendto(data, (BROADCAST_ADDR, BROADCAST_PORT))
             # _logger.info(f"📡 广播 HELLO: {BROADCAST_ADDR},{BROADCAST_PORT}")
             _logger.info(f"📡 广播 HELLO：{device.device_name}")
             time.sleep(interval)
@@ -96,7 +96,7 @@ def broadcast_super_node_hello(
             data = json.dumps(payload).encode("utf-8")
             # print("data:",data)
             _logger.info(f"data:{data}")
-            sock.sendto(data, ("<broadcast>", BROADCAST_PORT))
+            sock.sendto(data, (BROADCAST_ADDR, BROADCAST_PORT))
             # sock.sendto(data, (BROADCAST_ADDR, BROADCAST_PORT))
             _logger.info(f"📢 广播 SUPERNODE_HELLO: {super_device.device_id}")
             # print(f"📢 广播 SUPERNODE_HELLO: {super_device.device_id}")
