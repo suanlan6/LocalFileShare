@@ -336,7 +336,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         self.tableWidget_5.rowDeleted.connect(self.handle_row_deleted)
 
         self.btn_adjustments.clicked.connect(self.peer_initialize)
-        self.peer_initialize()
+        self.peer.setRowCount(0)
 
     def initialize_table_data(self):
         self.localFile_list = []

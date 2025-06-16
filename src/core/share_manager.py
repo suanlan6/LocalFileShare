@@ -297,7 +297,19 @@ class ShareManager:
         """
         扫描当前局域网内的接入设备。
         """
-        self._devices = get_all_device_info(self.bindDevice)
+        device_info = get_all_device_info(self.bindDevice)
+        for device_id, info in device_info.items():
+            if device_id not in self._devices:
+                # 创建 Device 实例
+                self._devices[device_id] = Device(
+                    device_id=device_id,
+                    device_name=info.get("device_name", "Unknown"),
+                    device_type=info.get("device_type", "Unknown"),
+                    host_ip=info.get("host_ip", "0.0.0.0"),
+                    conn_port=info.get("conn_port", 0),
+                    transfer_port=info.get("transfer_port", 0),
+                )
+        return self._devices
 
     def stopScan(self) -> None:
         """
