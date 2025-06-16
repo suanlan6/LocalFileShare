@@ -40,7 +40,7 @@ class SuperNode:
         # 打印超级节点视图
         self.start_peer_view_printer()
         # 监听心跳
-        self.heartbeat_port = self.device.conn_port  # 或者单独指定
+        self.heartbeat_port = self.device.discovery_port  # 或者单独指定
         self._start_heartbeat_listener()
         # 清理过期邀请名额
         self.start_invite_timeout_checker()
@@ -102,10 +102,10 @@ class SuperNode:
     def _start_tcp_listener(self):
         def _listen():
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
-            sock.bind((self.device.host_ip, self.device.conn_port))
+            sock.bind((self.device.host_ip, self.device.discovery_port))
             sock.listen(5)
             _logger.info(
-                f"🧲 超级节点监听 JOIN_CONFIRM: {self.device.host_ip}:{self.device.conn_port}"
+                f"🧲 超级节点监听 JOIN_CONFIRM: {self.device.host_ip}:{self.device.discovery_port}"
             )
 
             while True:
@@ -119,7 +119,7 @@ class SuperNode:
                         # ✅ 发送 JOIN_ACK，附带 heartbeat_port
                         response = {
                             "type": "JOIN_ACK",
-                            "heartbeat_port": self.device.conn_port,  # ✅ 通常就是当前监听的端口
+                            "heartbeat_port": self.device.discovery_port,  # ✅ 通常就是当前监听的端口
                         }
                         conn.send(json.dumps(response).encode("utf-8"))
                         _logger.info(
@@ -281,7 +281,7 @@ class SuperNode:
             # 将当前超级节点的 IP 和端口写入子节点的设备信息
             dev_info["super_node_id"] = self.device.device_id
             dev_info["super_ip"] = self.device.host_ip
-            dev_info["super_port"] = self.device.conn_port
+            dev_info["super_port"] = self.device.discovery_port
 
             _logger.info("加入进来的子节点设备信息")
             _logger.info(dev_info)
@@ -329,7 +329,7 @@ class SuperNode:
                     f"📨 {self.device.device_name} 向 {dev_info['device_name']} 发出加入邀请（挂起确认）"
                 )
 
-        send_sync_to_child(dev_info["host_ip"], dev_info["conn_port"], payload)
+        send_sync_to_child(dev_info["host_ip"], dev_info["discovery_port"], payload)
 
     """
     def sync_new_member_to_children(self, new_dev):
@@ -377,7 +377,7 @@ class SuperNode:
                 )
                 _logger.info(
                     f" - [SELF] {self.device.device_name} ({self.device.device_id[:6]}) "
-                    f"{self.device.host_ip}:{self.device.conn_port} | "
+                    f"{self.device.host_ip}:{self.device.discovery_port} | "
                     f"子节点：{self_sub_count}/{self.group_limit - 1} | 状态：在线"
                 )
                 _logger.info(f"   子节点列表：[{self_names}]")
@@ -395,7 +395,7 @@ class SuperNode:
                             limit = data["group_limit"]
                             last_seen = now - data["last_seen"]
                             _logger.info(
-                                f" - [{dev['device_name']}] ({peer_id[:6]}) {dev['host_ip']}:{dev['conn_port']} | "
+                                f" - [{dev['device_name']}] ({peer_id[:6]}) {dev['host_ip']}:{dev['discovery_port']} | "
                                 f"子节点：{sub_count}/{limit - 1} | 上次看到：{last_seen:.1f}s 前"
                             )
                             sub_info = data.get("sub_info", [])

@@ -93,9 +93,9 @@ def listen_heartbeat_ack(self_device: Device, port_offset=100):
     def _listen():
         global last_ack_time
         sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind((self_device.host_ip, self_device.conn_port + port_offset))
+        sock.bind((self_device.host_ip, self_device.discovery_port + port_offset))
         _logger.info(
-            f"📡 子节点监听 HEARTBEAT_ACK @ {self_device.host_ip}:{self_device.conn_port + port_offset}"
+            f"📡 子节点监听 HEARTBEAT_ACK @ {self_device.host_ip}:{self_device.discovery_port + port_offset}"
         )
 
         while joined:
@@ -139,11 +139,11 @@ def start_super_node_timeout_checker(self_device: Device, timeout=10):
 
                         # 初始化
                         new_port = find_free_port()
-                        self_device.conn_port = new_port
+                        self_device.discovery_port = new_port
                         self_device.is_super_node = True
                         self_device.super_node_id = self_device.device_id
                         self_device.super_ip = self_device.host_ip
-                        self_device.super_port = self_device.conn_port
+                        self_device.super_port = self_device.discovery_port
 
                         _logger.info(self_device.to_dict())
                         super_node = SuperNode(self_device)
@@ -170,11 +170,13 @@ def listen_super_node(
         global listener_socket
         sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
         sock.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        sock.bind((self_device.host_ip, self_device.conn_port))
+        sock.bind((self_device.host_ip, self_device.discovery_port))
         sock.listen(5)
         sock.settimeout(1.0)  # ⏳ 每秒检查是否退出
         listener_socket = sock
-        _logger.info(f"📡 子节点监听中: {self_device.host_ip}:{self_device.conn_port}")
+        _logger.info(
+            f"📡 子节点监听中: {self_device.host_ip}:{self_device.discovery_port}"
+        )
 
         while not should_stop_listen:
             try:
@@ -243,7 +245,7 @@ def choose_and_join(self_device: Device, on_join_callback):
         try:
             sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
             sock.settimeout(3)
-            sock.connect((chosen["host_ip"], chosen["conn_port"]))
+            sock.connect((chosen["host_ip"], chosen["discovery_port"]))
             sock.send(json.dumps(payload).encode("utf-8"))
 
             ack = sock.recv(65536).decode("utf-8")
@@ -262,7 +264,7 @@ def choose_and_join(self_device: Device, on_join_callback):
             self_device.super_port = heartbeat_port
 
             _logger.info(
-                f"📬 发送 JOIN_CONFIRM → {chosen['host_ip']}:{chosen['conn_port']}"
+                f"📬 发送 JOIN_CONFIRM → {chosen['host_ip']}:{chosen['discovery_port']}"
             )
             _logger.info(
                 f"✅ 已选择加入超级节点: {chosen['device_name']}，心跳端口：{heartbeat_port}"
@@ -306,12 +308,12 @@ def choose_and_join(self_device: Device, on_join_callback):
     from src.core.Discovery.device_start import find_free_port
 
     new_port = find_free_port()
-    self_device.conn_port = new_port
+    self_device.discovery_port = new_port
     _logger.info(f"🔁 分配新端口用于超级节点：{new_port}")
 
     self_device.is_super_node = True
     self_device.super_ip = self_device.host_ip
-    self_device.super_port = self_device.conn_port
+    self_device.super_port = self_device.discovery_port
     self_device.super_node_id = self_device.device_id
     _logger.info(f"📦 自身设备信息：{self_device.to_dict()}")
 
