@@ -297,6 +297,7 @@ class ShareManager:
         """
         扫描当前局域网内的接入设备。
         """
+        self._devices = {}
         device_info = get_all_device_info(self.bindDevice)
         for device_id, info in device_info.items():
             if (
