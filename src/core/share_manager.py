@@ -299,7 +299,10 @@ class ShareManager:
         """
         device_info = get_all_device_info(self.bindDevice)
         for device_id, info in device_info.items():
-            if device_id not in self._devices:
+            if (
+                device_id != self.bindDevice.device_id
+                and device_id not in self._devices
+            ):
                 # 创建 Device 实例
                 self._devices[device_id] = Device(
                     device_id=device_id,
