@@ -357,9 +357,12 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     #######################################################拖拽事件触发##########################################################
     def configure_table(self, table: QTableWidget):
         def handle_row_dropped(source_name, target_name, data):
-            print(f"[MainWindow] 拖拽数据: {data} 从 {source_name} ➜ {target_name}")
+            _logger.info(
+                f"[MainWindow] 拖拽数据: {data} 从 {source_name} ➜ {target_name}"
+            )
             if target_name == "peerDocument":
                 if source_name == "LocalFile":
+                    files = [self.localFile_list[i] for i in data]
                     path = self.pushButton_3.text()
                     device = self.peerDeviceId
                     self.share_dispatcher.dispatch(
@@ -367,9 +370,10 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         device,
                         ShareType.FILE,
                         path,
-                        self.localFile_list[data],
+                        files,
                     )
                 elif source_name == "Sharing":
+                    files = [self.fileSharing_list[i] for i in data]
                     path = self.pushButton_3.text()
                     device = self.peerDeviceId
                     self.share_dispatcher.dispatch(
@@ -377,33 +381,36 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         device,
                         ShareType.FILE,
                         path,
-                        self.fileSharing_list[data],
+                        files,
                     )
             elif target_name == "LocalFile":
                 path = self.pushButton_2.text()
                 device = self.peerDeviceId
+                files = [self.peerData_list[i] for i in data]
                 # self.controller.receiving(device, path, self.peerData_list[data])
                 self.share_dispatcher.dispatch(
                     self.controller.receiving,
                     device,
                     ShareType.FILE,
                     path,
-                    self.peerData_list[data],
+                    files,
                 )
             elif target_name == "Sharing":
                 if source_name == "LocalFile":
-                    self.controller.set_sharing_file(self.localFile_list[data])
+                    for i in data:
+                        self.controller.set_sharing_file(self.localFile_list[i])
                     self.fileSharing_initialize()
                     return
                 path = self.FileSharingLabel.text()
                 device = self.peerDeviceId
+                files = [self.peerData_list[i] for i in data]
                 # self.controller.receiving(device, path, self.peerData_list[data])
                 self.share_dispatcher.dispatch(
                     self.controller.receiving,
                     device,
                     ShareType.FILE,
                     path,
-                    self.peerData_list[data],
+                    files,
                 )
 
         table.rowDropped.connect(handle_row_dropped)
@@ -428,7 +435,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         # 确保只按单元格选中
         table.setSelectionBehavior(QAbstractItemView.SelectItems)
         # 如果你想让一次只选一个单元格：
-        table.setSelectionMode(QAbstractItemView.SingleSelection)
+        # table.setSelectionMode(QAbstractItemView.SingleSelection)
 
         table.installEventFilter(self)
 
@@ -479,7 +486,11 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.fileSharing.clearContents()
         self.fileSharing.setRowCount(0)
-        self.fileSharing_list = self.controller.get_sharing_file_info(parent_path)
+        is_valid_share_path, self.fileSharing_list = (
+            self.controller.get_sharing_file_info(parent_path)
+        )
+        if not is_valid_share_path:
+            self.FileSharingLabel.setText("/")
         self.fileSharing.setRowCount(len(self.fileSharing_list))
         for row, info in enumerate(self.fileSharing_list):
             name_item = QTableWidgetItem(info.name)
@@ -1053,13 +1064,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def open_menu(self, pos: QPoint, table):
         # 获取点击位置的单元格
-        item = table.itemAt(pos)
-        if item is None:
-            return
+        selected_ranges = table.selectedRanges()
+        selected_rows = set()
+        for r in selected_ranges:
+            for row in range(r.topRow(), r.bottomRow() + 1):
+                selected_rows.add(row)
+        selected_rows = sorted(selected_rows)
 
-        row = item.row()
-        col = item.column()
-        print(f"右键点击了: 行 {row}, 列 {col}")
+        if not selected_rows:
+            return
 
         # 创建菜单
         menu = QMenu(self)
@@ -1098,15 +1111,15 @@ class MainWindow(QMainWindow, Ui_MainWindow):
         )
 
         action_delete = QAction("删除共享", self)
-        action_delete.triggered.connect(lambda: self.delete_row(row, table))
+        action_delete.triggered.connect(lambda: self.delete_rows(selected_rows, table))
         menu.addAction(action_delete)
-
         # 显示菜单（全局坐标）
         menu.exec(table.viewport().mapToGlobal(pos))
 
-    def delete_row(self, row, table):
-        _logger.info(f"删除行: {row}")
-        self.controller.delete_sharing_file(self.fileSharing_list[row])
+    def delete_rows(self, rows: list[int], table: QTableWidget):
+        for row in sorted(rows, reverse=True):
+            _logger.info(f"删除行: {row}")
+            self.controller.delete_sharing_file(self.fileSharing_list[row])
         self.fileSharing_initialize()
 
 
