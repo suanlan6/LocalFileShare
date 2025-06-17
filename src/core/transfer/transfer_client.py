@@ -69,14 +69,14 @@ def prepare_upload_targets(
 
 
 async def upload_single_file(
-    file: FileInfo,
+    original_file: FileInfo,
     remote_dir: str,
     device_id: str,
     host: str,
     port: str,
     upload_url: str,
     merge_url: str,
-    need_unzip: bool,
+    # need_unzip: bool,
     transfer_control: Dict[str, Dict[str, Any]],
     transfer_lock: asyncio.Lock,
     progress_callback: Optional[Callable[[str, float], None]] = None,
@@ -90,11 +90,38 @@ async def upload_single_file(
         port (str): 目标端口号。
         upload_url (str): 上传分片的 URL。
         merge_url (str): 合并分片的 URL。
-        need_unzip (bool): 是否需要在上传后解压缩文件。
         transfer_control (Dict[str, Dict[str, Any]]): 传输控制状态字典，用于跟踪文件传输状态。
         transfer_lock (asyncio.Lock): 异步锁，用于控制并发上传。
         progress_callback (Optional[Callable[[str, float], None]]): 可选的进度回调函数，接收文件名和进度百分比。
     """
+    # 判断是否为目录，若是则压缩
+    need_unzip = False
+    file = original_file
+    if os.path.isdir(original_file.path):
+        tmp_dir = tempfile.mkdtemp()
+        zip_name = f"{original_file.name}.zip"
+        zip_path = os.path.join(tmp_dir, zip_name)
+        shutil.make_archive(zip_path.replace(".zip", ""), "zip", original_file.path)
+
+        file = FileInfo(
+            name=zip_name,
+            size=os.path.getsize(zip_path),
+            path=zip_path,
+            host=file.host,
+        )
+        need_unzip = True
+
+    # 初始化 transfer_control 状态
+    file_id = get_file_id(file.name, file.size)
+    async with transfer_lock:
+        transfer_control[file_id] = {
+            "filename": file.name,  # 注意这里保留原始名字
+            "size": file.size,
+            "progress": 0.0,
+            "status": TransferStatus.RUNNING,
+            "event": asyncio.Event(),
+        }
+
     total = file.size
     total_chunks = (total + CHUNK_SIZE - 1) // CHUNK_SIZE
 
@@ -252,24 +279,24 @@ async def async_send_files(
     upload_url = f"http://{host}:{port}/upload_chunk"
     merge_url = f"http://{host}:{port}/merge_chunks"
 
-    upload_targets = prepare_upload_targets(files, transfer_control)
+    # upload_targets = prepare_upload_targets(files, transfer_control)
 
     await asyncio.gather(
         *[
             upload_single_file(
-                file,
+                original_file,
                 remote_dir,
                 device_id,
                 host,
                 port,
                 upload_url,
                 merge_url,
-                need_zip,
+                # need_zip,
                 transfer_control,
                 transfer_lock,
                 progress_callback,
             )
-            for file, need_zip in upload_targets
+            for original_file in files
         ]
     )
     return {"status": "success", "message": "All files uploaded successfully"}
