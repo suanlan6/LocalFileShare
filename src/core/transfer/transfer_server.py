@@ -79,18 +79,20 @@ async def get_uploaded_chunks(
     Returns:
         Dict[str, str]: 包含上传状态和分片索引的字典。
     """
-    # 保存略缩图信息
-    if thumbnail_b64 and media_type:
-        meta_path = os.path.join(path, f"{filename}.meta.json")
-        metadata = {"type": media_type, "thumbnail_b64": thumbnail_b64}
-        with open(meta_path, "w", encoding="utf-8") as f:
-            json.dump(metadata, f)
+    # # 保存略缩图信息
+    # if thumbnail_b64 and media_type:
+    #     meta_path = os.path.join(path, f"{filename}.meta.json")
+    #     metadata = {"type": media_type, "thumbnail_b64": thumbnail_b64}
+    #     with open(meta_path, "w", encoding="utf-8") as f:
+    #         json.dump(metadata, f)
 
     save_dir = os.path.join(path, f".{file_id}.chunks")
     if not os.path.exists(save_dir):
         if file_id not in upload_by_other[from_device_id]:
             upload_by_other[from_device_id][file_id] = {
-                "filename": filename,
+                "filename": (
+                    filename[:-8] if filename.endswith(".tar.zst") else filename
+                ),
                 "status": TransferStatus.RUNNING,
                 "uploaded_chunks": [],
                 "total_chunks": total_chunks,
@@ -110,7 +112,9 @@ async def get_uploaded_chunks(
     async with upload_lock:
         if file_id not in upload_by_other[from_device_id]:
             upload_by_other[from_device_id][file_id] = {
-                "filename": filename,
+                "filename": (
+                    filename if not filename.endswith(".tar.zst") else filename[:-8]
+                ),
                 "status": TransferStatus.RUNNING,
                 "uploaded_chunks": uploaded_chunks,
                 "total_chunks": total_chunks,
