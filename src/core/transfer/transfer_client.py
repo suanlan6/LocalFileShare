@@ -11,6 +11,9 @@ from .transfer_config import TransferStatus, STATUS_MESSAGE, get_file_id
 from .transfer_utils import (
     is_image_or_video,
     generate_thumbnail_base64,
+    compress_folder_to_zst,
+    decompress_zst_to_folder,
+    run_sync,
 )
 from src.common.global_config import CHUNK_SIZE
 from src.common.fileConf import ShareType, FileInfo
@@ -99,9 +102,10 @@ async def upload_single_file(
     file = original_file
     if os.path.isdir(original_file.path):
         tmp_dir = tempfile.mkdtemp()
-        zip_name = f"{original_file.name}.zip"
+        zip_name = f"{original_file.name}.tar.zst"
         zip_path = os.path.join(tmp_dir, zip_name)
-        shutil.make_archive(zip_path.replace(".zip", ""), "zip", original_file.path)
+        await run_sync(compress_folder_to_zst, original_file.path, zip_path)
+        # compress_folder_to_zst(original_file.path, zip_path)
 
         file = FileInfo(
             name=zip_name,
@@ -448,9 +452,10 @@ async def download_single_file(
         shutil.rmtree(local_tmp_dir)
 
         # 解压（仅文件夹下载）
-        if file_name.endswith(".zip"):
-            extract_dir = os.path.join(dst_path, file_name[:-4])
-            shutil.unpack_archive(local_path, extract_dir)
+        if file_name.endswith(".tar.zst"):
+            extract_dir = os.path.join(dst_path, file_name[:-8])  # 去除 .tar.zst
+            # decompress_zst_to_folder(local_path, extract_dir)
+            await run_sync(decompress_zst_to_folder, local_path, extract_dir)
             os.remove(local_path)
 
     async with download_lock:

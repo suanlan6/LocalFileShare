@@ -10,6 +10,7 @@ from typing import Dict, Any, Optional
 from src.common.global_config import CHUNK_SIZE
 from src.utils.logger import _logger
 from .transfer_config import TransferStatus
+from .transfer_utils import compress_folder_to_zst, decompress_zst_to_folder, run_sync
 
 
 async def upload_chunk(
@@ -126,7 +127,7 @@ async def get_uploaded_chunks(
     return {"status": "success", "chunks": sorted(uploaded_chunks)}
 
 
-def merge_chunks(
+async def merge_chunks(
     file_id: str,
     filename: str,
     path: str,
@@ -166,12 +167,14 @@ def merge_chunks(
 
     # 解压缩逻辑
     try:
-        if unzip_after_merge and output_file.endswith(".zip"):
-            extract_dir = os.path.join(
-                path, os.path.splitext(os.path.basename(output_file))[0]
-            )
-            shutil.unpack_archive(output_file, extract_dir)  # 解压到当前 path
-            os.remove(output_file)  # 删除 zip 包
+        if unzip_after_merge and output_file.endswith(".tar.zst"):
+            # extract_dir = os.path.join(
+            #     path,
+            #     os.path.splitext(os.path.splitext(os.path.basename(output_file))[0])[0],
+            # )
+            await run_sync(decompress_zst_to_folder, output_file, path)
+            os.remove(output_file)
+
     except Exception as e:
         _logger.error(f"Error during unzipping: {e}")
         return {
@@ -227,7 +230,7 @@ async def download_chunk(file_path: str, chunk_index: int, chunk_size: int) -> b
         )
 
 
-def prepare_folder_download(folder_path: str) -> Dict[str, str]:
+async def prepare_folder_download(folder_path: str) -> Dict[str, str]:
     """
     准备文件夹下载，返回压缩包路径、名称和大小。
     Args:
@@ -237,7 +240,7 @@ def prepare_folder_download(folder_path: str) -> Dict[str, str]:
     """
     tmp_dir = tempfile.gettempdir()
     base_name = os.path.join(tmp_dir, os.path.basename(folder_path))
-    zip_path = shutil.make_archive(base_name, "zip", root_dir=folder_path)
+    zip_path = await run_sync(compress_folder_to_zst, folder_path, base_name)
     size = os.path.getsize(zip_path)
 
     return {
