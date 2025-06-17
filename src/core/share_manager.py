@@ -248,7 +248,9 @@ class ShareManager:
         total_chunks = data.get("total_chunks")
         unzip_after_merge = data.get("unzip_after_merge", False)
 
-        result = merge_chunks(file_id, filename, path, total_chunks, unzip_after_merge)
+        result = await merge_chunks(
+            file_id, filename, path, total_chunks, unzip_after_merge
+        )
         if result["status"] == "error":
             _logger.error(
                 f"Failed to merge chunks for {filename}, error: {result['message']}"
@@ -264,7 +266,7 @@ class ShareManager:
             return web.Response(status=400, text="Invalid folder path")
 
         try:
-            result = prepare_folder_download(folder_path)
+            result = await prepare_folder_download(folder_path)
             return web.json_response(result)
         except Exception as e:
             return web.Response(status=400, text=str(e))
