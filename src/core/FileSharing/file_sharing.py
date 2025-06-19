@@ -286,11 +286,30 @@ class FileSharing:
 
     # ------------------ 内部方法 ------------------
     def load_config(self):
-        """加载共享配置"""
+        """加载共享配置，自动移除无效路径并更新配置"""
         try:
             if os.path.exists(self.config_path):
+                # 读取原始配置数据
                 with open(self.config_path, "r") as f:
                     raw_data = json.load(f)
+
+                # 检查路径有效性并过滤无效项
+                updated = False
+                valid_data = {}
+                for path, info in raw_data.items():
+                    if os.path.exists(path):
+                        valid_data[path] = info
+                    else:
+                        _logger.warning(f"路径不存在已移除: {path}")
+                        updated = True
+
+                # 更新内存数据和配置文件
+                if updated:
+                    with open(self.config_path, "w") as f:
+                        json.dump(valid_data, f, indent=4, ensure_ascii=False)
+                    raw_data = valid_data  # 使用清理后的数据
+
+                # 转换为FileInfo对象
                 self.shared_dirs = {
                     k: FileInfo.from_dict(v) for k, v in raw_data.items()
                 }
