@@ -109,6 +109,7 @@ class FileController:
                 if (
                     file["status"] == TransferStatus.RUNNING
                     or file["status"] == TransferStatus.PAUSED
+                    or file["status"] == TransferStatus.ZST_COMPRESSING
                 ):
                     result[device_id][file_id] = file
         return result
@@ -144,6 +145,7 @@ class FileController:
                 if (
                     file["status"] == TransferStatus.RUNNING
                     or file["status"] == TransferStatus.PAUSED
+                    or file["status"] == TransferStatus.ZST_COMPRESSING
                 ):
                     result[device_id][file_id] = file
         return result
@@ -178,6 +180,7 @@ class FileController:
                 if (
                     file["status"] == TransferStatus.RUNNING
                     or file["status"] == TransferStatus.PAUSED
+                    or file["status"] == TransferStatus.ZST_COMPRESSING
                 ):
                     result[device_id][file_id] = file
         return result
