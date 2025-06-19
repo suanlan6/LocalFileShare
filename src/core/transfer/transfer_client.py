@@ -332,12 +332,14 @@ async def download_single_file(
 
     async with aiohttp.ClientSession() as session:
         # 获取文件信息
+        original_file_id = None
         if file.type == ShareType.FOLDER:
             # 设置初始状态
             async with download_lock:
-                download_control[file_id] = {
-                    "filename": file_name,
-                    "size": total_size,
+                original_file_id = get_file_id(file.name, 0)
+                download_control[original_file_id] = {
+                    "filename": file.name,
+                    "size": file.name,
                     "progress": 0.0,
                     "status": TransferStatus.ZST_COMPRESSING,
                     "event": asyncio.Event(),
@@ -365,6 +367,8 @@ async def download_single_file(
 
         # 设置初始状态
         async with download_lock:
+            if original_file_id in download_control:
+                del download_control[original_file_id]
             download_control[file_id] = {
                 "filename": file_name,
                 "size": total_size,

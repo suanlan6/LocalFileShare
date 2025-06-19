@@ -14,7 +14,7 @@ from PySide6.QtCore import (
     Signal,
     QThread,
 )
-from PySide6.QtGui import QIcon, QAction
+from PySide6.QtGui import QIcon, QAction, QPainterPath, QColor, QFont
 from PySide6.QtWidgets import (
     QMainWindow,
     QApplication,
@@ -25,7 +25,7 @@ from PySide6.QtWidgets import (
     QTableWidget,
     QTableWidgetItem,
     QDialog,
-    QMenu,
+    QMenu, QLabel, QHBoxLayout, QGraphicsOpacityEffect, QWidget,
 )
 
 from src.LFS_GUI.config.config import LightConfig, DarkConfig
@@ -49,6 +49,7 @@ from src.LFS_GUI.views.ui_designs.LoadingDialog import LoadingDialog
 from src.LFS_GUI.views.widgets.custom_grips import CustomGrip
 from src.LFS_GUI.utils.async_worker import AsyncDispatcher, DispatcherThread
 from src.common.fileConf import ShareType, FileInfo
+from src.core.transfer.transfer_config import TransferStatus
 from src.utils.logger import _logger
 
 
@@ -321,6 +322,8 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
         self.btn_widgets.clicked.connect(clicked_btn_widgets)
 
+
+        ########zip
         self.FromLocal.setText("传输中")
         self.FromLocal.clicked.connect(self.switch_to_from_local)
         self.set_fromSendingData()
@@ -473,7 +476,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if info.type == ShareType.FOLDER:
                 size_item = QTableWidgetItem("")
             else:
-                size_item = QTableWidgetItem(f"{info.size} KB")
+                size_item = QTableWidgetItem(format_file_size(info.size))
             type_item = QTableWidgetItem(info.type.name)
 
             self.localFile.setItem(row, 0, name_item)
@@ -497,7 +500,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if info.type == ShareType.FOLDER:
                 size_item = QTableWidgetItem("")
             else:
-                size_item = QTableWidgetItem(f"{info.size} KB")
+                size_item = QTableWidgetItem(format_file_size(info.size))
             type_item = QTableWidgetItem(info.type.name)
             self.fileSharing.setItem(row, 0, name_item)
             self.fileSharing.setItem(row, 1, size_item)
@@ -522,7 +525,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             if info.type == ShareType.FOLDER:
                 size_item = QTableWidgetItem("")
             else:
-                size_item = QTableWidgetItem(f"{info.size} KB")
+                size_item = QTableWidgetItem(format_file_size(info.size))
             type_item = QTableWidgetItem(info.type.name)
             self.peerData.setItem(row, 0, name_item)
             self.peerData.setItem(row, 1, size_item)
@@ -565,6 +568,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_fromSendingData(self):
         table = self.FromSendingData
         fromSendingData = self.controller.get_fromSendingData_data()
+        _logger.info(f'fromSendingData: {fromSendingData}')
         self.FromSendingData_list = []
         table.clearContents()
         table.setRowCount(0)  # 清空所有行
@@ -580,12 +584,19 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
-                item = QTableWidgetItem(format_file_size(size))
-                item.setTextAlignment(Qt.AlignCenter)
-                table.setItem(row_idx, 1, item)
-                progress_widget = ProgressBarWidget(table)
-                progress_widget.set_value(progress_value)
-                table.setCellWidget(row_idx, 2, progress_widget)
+                if file_info['status'] == TransferStatus.ZST_COMPRESSING:
+                    item = QTableWidgetItem("")
+                    table.setItem(row_idx, 1, item)
+                    item = QTableWidgetItem("压缩中.......")
+                    item.setTextAlignment(Qt.AlignCenter)
+                    table.setItem(row_idx, 2, item)
+                else:
+                    item = QTableWidgetItem(format_file_size(size))
+                    item.setTextAlignment(Qt.AlignCenter)
+                    table.setItem(row_idx, 1, item)
+                    progress_widget = ProgressBarWidget(table)
+                    progress_widget.set_value(progress_value)
+                    table.setCellWidget(row_idx, 2, progress_widget)
                 row_idx += 1
         table.data = self.FromSendingData_list
 
@@ -1175,6 +1186,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             _logger.info(f"删除行: {row}")
             self.controller.delete_sharing_file(self.fileSharing_list[row])
         self.fileSharing_initialize()
+
 
 
 ####################################utils####################################################
