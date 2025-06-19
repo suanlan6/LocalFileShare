@@ -104,6 +104,16 @@ async def upload_single_file(
         tmp_dir = tempfile.mkdtemp()
         zip_name = f"{original_file.name}.tar.zst"
         zip_path = os.path.join(tmp_dir, zip_name)
+        # 初始化 transfer_control 状态
+        file_id = get_file_id(file.name, file.size)
+        async with transfer_lock:
+            transfer_control[file_id] = {
+                "filename": file.name,  # 注意这里保留原始名字
+                "size": file.size,
+                "progress": 0.0,
+                "status": TransferStatus.ZST_COMPRESSING,
+                "event": asyncio.Event(),
+            }
         await run_sync(compress_folder_to_zst, original_file.path, zip_path)
         # compress_folder_to_zst(original_file.path, zip_path)
 
@@ -323,6 +333,15 @@ async def download_single_file(
     async with aiohttp.ClientSession() as session:
         # 获取文件信息
         if file.type == ShareType.FOLDER:
+            # 设置初始状态
+            async with download_lock:
+                download_control[file_id] = {
+                    "filename": file_name,
+                    "size": total_size,
+                    "progress": 0.0,
+                    "status": TransferStatus.ZST_COMPRESSING,
+                    "event": asyncio.Event(),
+                }
             async with session.get(
                 f"http://{host}:{port}/prepare_folder_download",
                 params={"path": file.path},

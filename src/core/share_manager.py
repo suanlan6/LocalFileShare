@@ -414,13 +414,16 @@ class ShareManager:
                 )
             return {"status": "failed", "msg": str(e)}
 
-    def disconnect(self, device_id: str) -> None:
+    async def disconnect(self, device_id: str) -> None:
         """
         关闭设备连接。
         Args:
             device_id (str): 设备ID。
         """
-        pass
+        try:
+            del self.connections[device_id]
+        except Exception as e:
+            _logger.error(f"Error disconnecting device {device_id}: {str(e)}")
 
     # 处理连接请求，返回transfer端口
     async def handle_connect(self, request: web.Request):
@@ -470,39 +473,6 @@ class ShareManager:
         except Exception as e:
             _logger.error(f"Error processing connect request: {str(e)}")
             return web.json_response({"error": str(e)}, status=500)
-
-    # async def handle_connect_later(self, from_device_id, bind_param):
-    #     # 1. 是否允许连接，由 self.auth 决定
-    #     try:
-    #         # accept = await self.auth.should_accept_connection(
-    #         #     from_device_id, bind_param
-    #         # )
-
-    #         # if not accept:
-    #         #     return web.json_response(
-    #         #         {"error": "Connection rejected by user"}, status=403
-    #         #     )
-
-    #         # # 3. 初始化上传任务
-    #         # self.upload_by_other[from_device_id] = {}
-    #         # # 这里可以加认证、校验逻辑
-    #         # self.client_connections[from_device_id] = {
-    #         #     "host": bind_param.get("host"),
-    #         #     "port": bind_param.get("port"),
-    #         #     "token": "example_token",  # 这里可以生成一个真实的token
-    #         # }
-    #         # 返回transfer端口信息给请求方
-    #         return web.json_response(
-    #             {
-    #                 "transfer_port": self.bindDevice.transfer_port,
-    #                 "pin": pin_code,
-    #                 "session_id": session_id,
-    #                 "expire_seconds": 120,  # PIN 有效期
-    #             }
-    #         )
-    #     except Exception as e:
-    #         _logger.error(f"Error handling connect request: {str(e)}")
-    #         return web.json_response({"error": str(e)}, status=500)
 
     async def handle_verify_pin(self, request: web.Request):
         """
