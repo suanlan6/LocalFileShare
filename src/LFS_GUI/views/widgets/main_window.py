@@ -646,29 +646,63 @@ class MainWindow(QMainWindow, Ui_MainWindow):
 
     def peer_initialize(self):
         self.peer.setRowCount(0)
-        button_style = """
+        connected_style = """
             QPushButton {
-                background-color: #849add;
-                border: 1px solid palette(mid);
-                border-radius: 6px;
-                margin: 4px;
-                color: palette(text);
+                background-color: #78c679;
+                border: 0.125em solid #436e44; /* 2px → 0.125em */
+                border-radius: 0.375em;        /* 6px → 0.375em */
+                margin: 0.25em;                /* 4px → 0.25em */
+                color: #ffffff;
                 font-size: 12pt;
                 font-weight: bold;
+                padding: 0.5em 0.75em;         /* 8px12px → 0.5em0.75em */
+                qproperty-icon: url(:/icons/check.svg);
+                icon-size: 1.5em;             /* 24px → 1.5em */
             }
             QPushButton:hover {
-                background-color: palette(highlight);
-                color: palette(highlighted-text);
+                background-color: #6ab56b;
+                border-color: #3a5a3a;
             }
             QPushButton:pressed {
-                background-color: palette(mid);
+                background-color: #5a9c5b;
             }
         """
-        self.host_list = self.controller.get_peer_data()
 
-        def create_handler(
-            device_unique_name_id: str, to_device_id: str, bindParam: dict
-        ):
+        not_connected_style = """
+            QPushButton {
+                background-color: #ffb366;
+                border: 0.125em solid #cc7c4d; 
+                border-radius: 0.375em;
+                margin: 0.25em;
+                color: #ffffff;
+                font-size: 12pt;
+                font-weight: bold;
+                padding: 0.5em 0.75em;
+                qproperty-icon: url(:/icons/link.svg);
+                icon-size: 1.5em;
+                spacing: 0.5em; /* 图标文字间距 */
+            }
+            QPushButton:hover {
+                background-color: #ff9c42;
+                border-color: #b3683d;
+            }
+            QPushButton:pressed {
+                background-color: #e68a57;
+            }
+        """
+
+        self.connection_list = self.controller.get_connections()
+        self.host_list = self.controller.get_peer_data()
+        connected_hosts = list(map(lambda x: x['host'], self.connection_list.values()))
+        sorted_devices = []
+        for host in self.host_list:
+            if host.host_ip in connected_hosts:
+                sorted_devices.append((host, True))  # 元组第二个参数表示已连接
+        for host in self.host_list:
+            if host.host_ip not in connected_hosts:
+                sorted_devices.append((host, False))
+
+        def create_handler(device_unique_name_id: str, to_device_id: str, bindParam: dict):
             def on_button_clicked():
                 # self.controller.request_connection(ip_address)
                 future = self.share_dispatcher.dispatch(
@@ -704,6 +738,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                         self.peerDeviceId = to_device_id
                         self.HostLabel.setText(f"Host: {device_unique_name_id}")
                         self.peerData_initialize()
+                        self.peer_initialize()
                     else:
                         _logger.info(f"连接失败: {result.get('message', '未知错误')}")
                         # self.backendConnect.request_received.emit(bindParam["host"])
@@ -712,21 +747,40 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                     # self.backendConnect.request_received.emit(bindParam["host"])
 
             return on_button_clicked
-
-        for row, device in enumerate(self.host_list):
+        def create_connected_handler(device, bindParam: dict):
+            def handler():
+                self.peerHost = bindParam["host"]
+                self.peerDeviceId = device.device_id
+                self.HostLabel.setText(f"Host: {device.device_name}@{device.host_ip}")
+                self.peerData_initialize()
+                self.peer_initialize()
+                # 可以添加更多已连接状态下的操作
+                # 例如刷新状态显示等
+            return handler
+        def create_row(device, is_connected):
+            row = self.peer.rowCount()
             self.peer.insertRow(row)
             device_unique_name_id = f"{device.device_name}@{device.host_ip}"
-            btn = QPushButton(device_unique_name_id)
-            btn.setStyleSheet(button_style)
+            btn = QPushButton(f"{device.device_name} {'✓' if is_connected else ''}")
+            btn.setToolTip(f"IP: {device.host_ip}\n状态: {'已连接' if is_connected else '未连接'}")
+            btn.setStyleSheet(connected_style if is_connected else not_connected_style)
             bindParam = {
                 "fromDeviceId": self.controller.share_manager.bindDevice.device_id,
                 "host": f"{device.host_ip}",
                 "port": device.conn_port,
             }
-            btn.clicked.connect(
-                create_handler(device_unique_name_id, device.device_id, bindParam)
-            )
+            if is_connected:
+                btn.clicked.connect(create_connected_handler(device, bindParam))
+                btn.setCursor(Qt.PointingHandCursor)
+            else:
+                btn.clicked.connect(
+                    create_handler(device_unique_name_id, device.device_id, bindParam)
+                )
+
             self.peer.setCellWidget(row, 0, btn)
+
+        for device, is_connected in sorted_devices:
+            create_row(device, is_connected)
 
     def initialize_window_resizing(self):
         """可调整窗口尺寸"""

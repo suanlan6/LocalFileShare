@@ -950,3 +950,6 @@ class ShareManager:
             if not directory
             else self.file_share.enter_shared_dir(path=directory)
         )
+
+    def get_connections(self):
+        return self.connections

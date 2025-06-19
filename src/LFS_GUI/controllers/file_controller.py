@@ -305,3 +305,6 @@ class FileController:
         """
         # _logger.info(f"delete_sharing_file {file_info}")
         self.share_manager.cancel_shared_directory(file_info.path)
+
+    def get_connections(self):
+        return self.share_manager.get_connections()
