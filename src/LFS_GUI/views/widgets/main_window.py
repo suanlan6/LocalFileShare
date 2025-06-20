@@ -604,6 +604,7 @@ class MainWindow(QMainWindow, Ui_MainWindow):
     def set_toSendingData(self):
         table = self.ToSendingData
         toSendingData_list = self.controller.get_toSendingData_list_data()
+        _logger.info(f'toSendingData_list: {toSendingData_list}')
         self.ToSendingData_list = []
         table.clearContents()
         table.setRowCount(0)  # 清空所有行
@@ -613,18 +614,27 @@ class MainWindow(QMainWindow, Ui_MainWindow):
             for file_id, file_info in file_dict.items():
                 file_info["device_id"] = device_id
                 file_info["file_id"] = file_id
+                # row_idx += 1
+                # file_info["file_id"] = file_id
                 self.ToSendingData_list.append(file_info)
                 filename = file_info.get("filename", "")
-                size = file_info.get("size", "")
+                size = file_info.get("size", 0)
                 progress_value = file_info.get("progress", 0.0)
                 table.insertRow(row_idx)  # 每次插入一行
                 table.setItem(row_idx, 0, QTableWidgetItem(filename))
-                item = QTableWidgetItem(size)
-                item.setTextAlignment(Qt.AlignCenter)
-                table.setItem(row_idx, 1, item)
-                progress_widget = ProgressBarWidget(table)
-                progress_widget.set_value(progress_value)
-                table.setCellWidget(row_idx, 2, progress_widget)
+                if file_info['status'] == TransferStatus.ZST_COMPRESSING:
+                    item = QTableWidgetItem("")
+                    table.setItem(row_idx, 1, item)
+                    item = QTableWidgetItem("压缩中.......")
+                    item.setTextAlignment(Qt.AlignCenter)
+                    table.setItem(row_idx, 2, item)
+                else:
+                    item = QTableWidgetItem(format_file_size(size))
+                    item.setTextAlignment(Qt.AlignCenter)
+                    table.setItem(row_idx, 1, item)
+                    progress_widget = ProgressBarWidget(table)
+                    progress_widget.set_value(progress_value)
+                    table.setCellWidget(row_idx, 2, progress_widget)
                 row_idx += 1
         table.data = self.ToSendingData_list
 
@@ -667,7 +677,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 0.5em 0.75em;         /* 8px12px → 0.5em0.75em */
-                qproperty-icon: url(:/icons/check.svg);
                 icon-size: 1.5em;             /* 24px → 1.5em */
             }
             QPushButton:hover {
@@ -689,7 +698,6 @@ class MainWindow(QMainWindow, Ui_MainWindow):
                 font-size: 12pt;
                 font-weight: bold;
                 padding: 0.5em 0.75em;
-                qproperty-icon: url(:/icons/link.svg);
                 icon-size: 1.5em;
                 spacing: 0.5em; /* 图标文字间距 */
             }

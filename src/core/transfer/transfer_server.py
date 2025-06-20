@@ -60,6 +60,7 @@ async def get_uploaded_chunks(
     from_device_id: str,
     file_id: str,
     filename: str,
+    file_size: int,
     path: str,
     total_chunks: int,
     upload_by_other: Dict[str, Dict[str, Dict[str, str]]],
@@ -88,18 +89,21 @@ async def get_uploaded_chunks(
 
     save_dir = os.path.join(path, f".{file_id}.chunks")
     if not os.path.exists(save_dir):
-        if file_id not in upload_by_other[from_device_id]:
-            upload_by_other[from_device_id][file_id] = {
-                "filename": (
-                    filename[:-8] if filename.endswith(".tar.zst") else filename
-                ),
-                "status": TransferStatus.RUNNING,
-                "uploaded_chunks": [],
-                "total_chunks": total_chunks,
-                "path": path,
-                "media_type": media_type,
-                "thumbnail_b64": thumbnail_b64,
-            }
+        async with upload_lock:
+            if file_id not in upload_by_other[from_device_id]:
+                upload_by_other[from_device_id][file_id] = {
+                    "filename": (
+                        filename[:-8] if filename.endswith(".tar.zst") else filename
+                    ),
+                    "status": TransferStatus.RUNNING,
+                    "uploaded_chunks": [],
+                    "total_chunks": total_chunks,
+                    "path": path,
+                    "media_type": media_type,
+                    "thumbnail_b64": thumbnail_b64,
+                    "size": file_size,
+                    "progress": 0,
+                }
         return {"status": "no chunks", "message": "No chunks found"}
 
     uploaded_chunks = [
@@ -121,12 +125,20 @@ async def get_uploaded_chunks(
                 "path": path,
                 "media_type": media_type,
                 "thumbnail_b64": thumbnail_b64,
+                "size": file_size,
+                "progress": 0,
             }
         else:
             # 更新进度
             upload_by_other[from_device_id][file_id][
                 "uploaded_chunks"
             ] = uploaded_chunks
+            _logger.info(f"uploaded_chunks{uploaded_chunks}")
+            upload_by_other[from_device_id][file_id]["progress"] = (
+                uploaded_chunks / total_chunks * 100
+                if total_chunks > 0
+                else 0
+            )
 
     return {"status": "success", "chunks": sorted(uploaded_chunks)}
 
@@ -136,6 +148,8 @@ async def merge_chunks(
     filename: str,
     path: str,
     total_chunks: int,
+    upload_by_other: Dict[str, Dict[str, Dict[str, str]]],
+    upload_lock: asyncio.Lock,
     unzip_after_merge: bool = False,
 ) -> Dict[str, str]:
     """
@@ -168,6 +182,8 @@ async def merge_chunks(
 
     # 合并完成后删除分片目录
     shutil.rmtree(chunk_dir)
+    async with upload_lock:
+        upload_by_other[file_id]["status"] = TransferStatus.COMPLETED
 
     # 解压缩逻辑
     try:

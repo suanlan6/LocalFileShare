@@ -126,8 +126,9 @@ async def upload_single_file(
         need_unzip = True
 
     # 初始化 transfer_control 状态
-    file_id = get_file_id(file.name, file.size)
     async with transfer_lock:
+        del transfer_control[file_id]
+        file_id = get_file_id(file.name, file.size)
         transfer_control[file_id] = {
             "filename": file.name,  # 注意这里保留原始名字
             "size": file.size,
@@ -151,6 +152,7 @@ async def upload_single_file(
             "from_device_id": device_id,
             "file_id": file_id,
             "filename": file.name,
+            "size": file.size,
             "path": remote_dir,
             "total_chunks": total_chunks,
         }
@@ -240,6 +242,7 @@ async def upload_single_file(
         async with session.post(
             merge_url,
             json={
+                "from_device_id": device_id,
                 "file_id": file_id,
                 "filename": file.name,
                 "path": remote_dir,
@@ -339,7 +342,7 @@ async def download_single_file(
                 original_file_id = get_file_id(file.name, 0)
                 download_control[original_file_id] = {
                     "filename": file.name,
-                    "size": file.name,
+                    "size": file.size,
                     "progress": 0.0,
                     "status": TransferStatus.ZST_COMPRESSING,
                     "event": asyncio.Event(),
