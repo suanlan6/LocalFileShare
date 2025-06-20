@@ -17,7 +17,8 @@ class FileController:
 
     def __init__(self, backendConnect):
         print("FileController init")
-        device = Device(device_name=get_device_name(), host_ip=get_local_ip())
+        # device = Device(device_name=get_device_name(), host_ip=get_local_ip())
+        device = Device(device_name="device_6", host_ip=get_local_ip())
         self.backendConnect = backendConnect
         # device = Device(
         #     device_id="device1",
@@ -34,7 +35,6 @@ class FileController:
         #     conn_port=19998,
         #     transfer_port=19999,
         # )
-
     async def start_server(self):
         await self.share_manager.start_servers()
 

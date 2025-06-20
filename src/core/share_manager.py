@@ -219,6 +219,7 @@ class ShareManager:
         from_device_id = request.query.get("from_device_id")
         file_id = request.query.get("file_id")
         filename = request.query.get("filename")
+        file_size = int(request.query.get("size"))
         path = request.query.get("path")
         total_chunks = request.query.get("total_chunks")
         thumbnail_b64 = request.query.get("thumbnail_b64")  # 可选
@@ -228,6 +229,7 @@ class ShareManager:
             from_device_id,
             file_id,
             filename,
+            file_size,
             path,
             total_chunks,
             self.upload_by_other,
@@ -242,6 +244,7 @@ class ShareManager:
 
     async def handle_merge_chunks(self, request: web.Request):
         data = await request.json()
+        from_device_id = data.get("from_device_id")
         file_id = data.get("file_id")
         filename = data.get("filename")
         path = data.get("path")
@@ -249,7 +252,13 @@ class ShareManager:
         unzip_after_merge = data.get("unzip_after_merge", False)
 
         result = await merge_chunks(
-            file_id, filename, path, total_chunks, unzip_after_merge
+            file_id,
+            filename,
+            path,
+            total_chunks,
+            self.upload_by_other[from_device_id],
+            self.upload_lock,
+            unzip_after_merge
         )
         if result["status"] == "error":
             _logger.error(
